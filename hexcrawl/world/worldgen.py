@@ -7,6 +7,7 @@ from enum import Enum
 import hashlib
 
 from hexcrawl.core.hex_math import AXIAL_DIRECTIONS
+from hexcrawl.world.world_config import WorldConfig, default_world_config
 
 
 class TerrainType(str, Enum):
@@ -36,16 +37,22 @@ class WorldGen:
     HILLS_THRESHOLD = 0.72
     MOUNTAINS_THRESHOLD = 0.88
 
-    def __init__(self, seed: int) -> None:
+    def __init__(self, seed: int, config: WorldConfig | None = None) -> None:
         self.seed = int(seed)
+        self.config = default_world_config() if config is None else config
 
     def get_tile(self, q: int, r: int) -> WorldTile:
         """Return deterministic tile data for axial hex coordinates."""
-        height = self._height_at(q, r)
+        canonical = self.config.canonicalize(q, r)
+        if canonical is None:
+            return WorldTile(height=0.0, terrain_type=TerrainType.OCEAN)
+
+        cq, cr = canonical
+        height = self._height_at(cq, cr)
 
         if self._is_ocean_height(height):
             terrain = TerrainType.OCEAN
-        elif self._has_ocean_neighbor(q, r):
+        elif self._has_ocean_neighbor(cq, cr):
             terrain = TerrainType.COAST
         elif height < self.PLAINS_THRESHOLD:
             terrain = TerrainType.PLAINS
@@ -72,7 +79,10 @@ class WorldGen:
 
     def _has_ocean_neighbor(self, q: int, r: int) -> bool:
         for dq, dr in AXIAL_DIRECTIONS:
-            neighbor_height = self._height_at(q + dq, r + dr)
+            neighbor = self.config.canonicalize(q + dq, r + dr)
+            if neighbor is None:
+                return True
+            neighbor_height = self._height_at(*neighbor)
             if self._is_ocean_height(neighbor_height):
                 return True
         return False

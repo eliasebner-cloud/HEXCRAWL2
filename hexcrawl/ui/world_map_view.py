@@ -11,6 +11,7 @@ from hexcrawl.core.hex_math import axial_distance, axial_round, axial_to_pixel, 
 from hexcrawl.core.player import Player
 from hexcrawl.sim.time_model import TimeModel
 from hexcrawl.world.climate import BiomeType, ClimateGen, ClimateTile
+from hexcrawl.world.world_config import WorldConfig
 from hexcrawl.world.worldgen import TerrainType, WorldGen
 
 
@@ -30,6 +31,7 @@ class WorldMapView:
         player: Player,
         world_gen: WorldGen,
         climate_gen: ClimateGen,
+        world_config: WorldConfig,
     ) -> None:
         self.panel_width = 280
         self.world_width = max(200, screen_width - self.panel_width)
@@ -63,6 +65,7 @@ class WorldMapView:
         self.player = player
         self.world_gen = world_gen
         self.climate_gen = climate_gen
+        self.world_config = world_config
         self.color_mode = ColorMode.TERRAIN
 
         self.terrain_colors: dict[TerrainType, tuple[int, int, int]] = {
@@ -227,6 +230,9 @@ class WorldMapView:
                 sx, sy = self._world_to_screen(wx, wy)
                 points = self._hex_corners(sx, sy)
 
+                if not self.world_config.is_r_in_bounds(r):
+                    continue
+
                 fill_color = self._tile_color(q, r)
                 pygame.draw.polygon(screen, fill_color, points, width=0)
                 pygame.draw.polygon(screen, self.grid_line_color, points, width=1)
@@ -299,6 +305,9 @@ class WorldMapView:
                 "Travel cost:  "
                 f"{travel_cost if travel_cost is not None else '(none)'}"
             ),
+            f"World profile: {self.world_config.profile.value}",
+            f"World size: {self.world_config.width}x{self.world_config.height}",
+            f"Wrap X: {self.world_config.wrap_x}",
             f"Seed: {self.world_gen.seed}",
             f"Mouse pixel:  {self.mouse_pixel}",
             (

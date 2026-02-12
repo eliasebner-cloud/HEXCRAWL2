@@ -5,12 +5,13 @@ from __future__ import annotations
 import unittest
 
 from hexcrawl.core.hex_math import AXIAL_DIRECTIONS
+from hexcrawl.world.world_config import WorldProfile, build_world_config
 from hexcrawl.world.worldgen import TerrainType, WorldGen
 
 
 class TestWorldGen(unittest.TestCase):
     def test_deterministic_outputs(self) -> None:
-        world_gen = WorldGen(seed=1337)
+        world_gen = WorldGen(seed=1337, config=build_world_config(WorldProfile.DEV))
 
         coords = [(-12, 4), (0, 0), (19, -8), (7, 13)]
         first_pass = [world_gen.get_tile(q, r) for q, r in coords]
@@ -19,7 +20,7 @@ class TestWorldGen(unittest.TestCase):
         self.assertEqual(first_pass, second_pass)
 
     def test_height_is_bounded(self) -> None:
-        world_gen = WorldGen(seed=2025)
+        world_gen = WorldGen(seed=2025, config=build_world_config(WorldProfile.DEV))
 
         for q in range(-20, 21, 2):
             for r in range(-20, 21, 2):
@@ -28,7 +29,7 @@ class TestWorldGen(unittest.TestCase):
                 self.assertLessEqual(height, 1.0)
 
     def test_coast_has_ocean_neighbor(self) -> None:
-        world_gen = WorldGen(seed=1337)
+        world_gen = WorldGen(seed=1337, config=build_world_config(WorldProfile.DEV))
 
         for q in range(-30, 31):
             for r in range(-30, 31):
@@ -41,6 +42,21 @@ class TestWorldGen(unittest.TestCase):
                     for dq, dr in AXIAL_DIRECTIONS
                 )
                 self.assertTrue(has_ocean_neighbor, msg=f"COAST without OCEAN neighbor at {(q, r)}")
+
+    def test_wrap_x_returns_same_tile(self) -> None:
+        config = build_world_config(WorldProfile.DEV)
+        world_gen = WorldGen(seed=1337, config=config)
+
+        base_q, base_r = 17, 22
+        wrapped_q = base_q + config.width
+        self.assertEqual(world_gen.get_tile(base_q, base_r), world_gen.get_tile(wrapped_q, base_r))
+
+    def test_out_of_bounds_r_defaults_to_ocean(self) -> None:
+        config = build_world_config(WorldProfile.DEV)
+        world_gen = WorldGen(seed=1337, config=config)
+
+        self.assertEqual(world_gen.get_tile(0, config.r_max + 1).terrain_type, TerrainType.OCEAN)
+        self.assertEqual(world_gen.get_tile(0, config.r_min - 1).terrain_type, TerrainType.OCEAN)
 
 
 if __name__ == "__main__":
