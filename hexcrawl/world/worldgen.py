@@ -9,6 +9,7 @@ import math
 from collections import OrderedDict
 
 from hexcrawl.core.hex_math import AXIAL_DIRECTIONS
+from hexcrawl.world.tectonics import BoundaryKind, PlateType, TectonicsModel
 from hexcrawl.world.world_config import WorldConfig, default_world_config
 
 
@@ -46,6 +47,7 @@ class WorldGen:
         self._tile_cache_maxsize = self._resolve_cache_maxsize()
         self._height_cache: OrderedDict[tuple[int, int], float] = OrderedDict()
         self._tile_cache: OrderedDict[tuple[int, int], WorldTile] = OrderedDict()
+        self._tectonics = TectonicsModel(seed=self.seed, config=self.config)
 
     def get_tile(self, q: int, r: int) -> WorldTile:
         """Return deterministic tile data for axial hex coordinates."""
@@ -83,7 +85,38 @@ class WorldGen:
             return cached_height
 
         x, y = self._normalized_world_pos(q, r)
-        height = self._fbm_height(x, y)
+        base_height = self._fbm_height(x, y)
+
+        plate = self._tectonics.plate_at(q, r)
+        boundary = self._tectonics.boundary_at(q, r)
+
+        plate_bias = 0.0
+        if plate is not None:
+            if plate.plate_type == PlateType.CONTINENTAL:
+                plate_bias = 0.09
+            else:
+                plate_bias = -0.09
+
+        boundary_bias = 0.0
+        if boundary.kind == BoundaryKind.CONVERGENT:
+            boundary_bias += 0.20 * boundary.strength
+            if plate is not None and plate.plate_type == PlateType.OCEANIC:
+                for dq, dr in AXIAL_DIRECTIONS:
+                    neighbor = self._tectonics.plate_at(q + dq, r + dr)
+                    if neighbor is None or neighbor.plate_id == plate.plate_id:
+                        continue
+                    if neighbor.plate_type == PlateType.CONTINENTAL:
+                        boundary_bias -= 0.18 * boundary.strength
+                        break
+        elif boundary.kind == BoundaryKind.DIVERGENT:
+            if plate is not None and plate.plate_type == PlateType.OCEANIC:
+                boundary_bias += 0.05 * boundary.strength
+            else:
+                boundary_bias -= 0.16 * boundary.strength
+        elif boundary.kind == BoundaryKind.TRANSFORM:
+            boundary_bias += 0.03 * boundary.strength
+
+        height = base_height + plate_bias + boundary_bias
         clamped = max(0.0, min(1.0, height))
         self._cache_set(self._height_cache, (q, r), clamped, self._height_cache_maxsize)
         return clamped

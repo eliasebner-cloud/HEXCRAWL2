@@ -51,6 +51,17 @@ class TestWorldGen(unittest.TestCase):
         wrapped_q = base_q + config.width
         self.assertEqual(world_gen.get_tile(base_q, base_r), world_gen.get_tile(wrapped_q, base_r))
 
+    def test_wrap_x_consistency_across_sample_window(self) -> None:
+        config = build_world_config(WorldProfile.DEV)
+        world_gen = WorldGen(seed=2025, config=config)
+
+        for q in range(-40, 41, 10):
+            for r in range(-30, 31, 10):
+                self.assertEqual(
+                    world_gen.get_tile(q, r),
+                    world_gen.get_tile(q + config.width, r),
+                )
+
     def test_worldgen_cache_uses_canonical_wrap_x_key(self) -> None:
         config = build_world_config(WorldProfile.DEV)
         world_gen = WorldGen(seed=1337, config=config)
