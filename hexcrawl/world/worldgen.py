@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 import hashlib
 import math
+from collections import OrderedDict
 
 from hexcrawl.core.hex_math import AXIAL_DIRECTIONS
 from hexcrawl.world.world_config import WorldConfig, default_world_config
@@ -41,6 +42,10 @@ class WorldGen:
     def __init__(self, seed: int, config: WorldConfig | None = None) -> None:
         self.seed = int(seed)
         self.config = default_world_config() if config is None else config
+        self._height_cache_maxsize = self._resolve_cache_maxsize()
+        self._tile_cache_maxsize = self._resolve_cache_maxsize()
+        self._height_cache: OrderedDict[tuple[int, int], float] = OrderedDict()
+        self._tile_cache: OrderedDict[tuple[int, int], WorldTile] = OrderedDict()
 
     def get_tile(self, q: int, r: int) -> WorldTile:
         """Return deterministic tile data for axial hex coordinates."""
@@ -49,6 +54,10 @@ class WorldGen:
             return WorldTile(height=0.0, terrain_type=TerrainType.OCEAN)
 
         cq, cr = canonical
+        cached_tile = self._cache_get(self._tile_cache, canonical)
+        if cached_tile is not None:
+            return cached_tile
+
         height = self._height_at(cq, cr)
 
         if self._is_ocean_height(height):
@@ -64,12 +73,45 @@ class WorldGen:
         else:
             terrain = TerrainType.SNOW
 
-        return WorldTile(height=height, terrain_type=terrain)
+        tile = WorldTile(height=height, terrain_type=terrain)
+        self._cache_set(self._tile_cache, canonical, tile, self._tile_cache_maxsize)
+        return tile
 
     def _height_at(self, q: int, r: int) -> float:
+        cached_height = self._cache_get(self._height_cache, (q, r))
+        if cached_height is not None:
+            return cached_height
+
         x, y = self._normalized_world_pos(q, r)
         height = self._fbm_height(x, y)
-        return max(0.0, min(1.0, height))
+        clamped = max(0.0, min(1.0, height))
+        self._cache_set(self._height_cache, (q, r), clamped, self._height_cache_maxsize)
+        return clamped
+
+    def _resolve_cache_maxsize(self) -> int:
+        if self.config.profile.value == "DEV":
+            return self.config.width * self.config.height
+        return 200_000
+
+    @staticmethod
+    def _cache_get(cache: OrderedDict[tuple[int, int], object], key: tuple[int, int]) -> object | None:
+        value = cache.get(key)
+        if value is None:
+            return None
+        cache.move_to_end(key)
+        return value
+
+    @staticmethod
+    def _cache_set(
+        cache: OrderedDict[tuple[int, int], object],
+        key: tuple[int, int],
+        value: object,
+        maxsize: int,
+    ) -> None:
+        cache[key] = value
+        cache.move_to_end(key)
+        while len(cache) > maxsize:
+            cache.popitem(last=False)
 
     def _normalized_world_pos(self, q: int, r: int) -> tuple[float, float]:
         """Map canonical axial coordinates into normalized [0,1) world space."""

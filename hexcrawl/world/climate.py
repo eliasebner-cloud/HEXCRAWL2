@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 import hashlib
+from collections import OrderedDict
 
 from hexcrawl.world.world_config import WorldConfig, default_world_config
 from hexcrawl.world.worldgen import TerrainType
@@ -39,6 +40,8 @@ class ClimateGen:
     def __init__(self, seed: int, config: WorldConfig | None = None) -> None:
         self.seed = int(seed)
         self.config = default_world_config() if config is None else config
+        self._cache_maxsize = self._resolve_cache_maxsize()
+        self._climate_cache: OrderedDict[tuple[int, int], tuple[TerrainType, float, ClimateTile]] = OrderedDict()
 
     def get_tile(self, q: int, r: int, terrain_type: TerrainType, height: float) -> ClimateTile:
         """Return deterministic heat/moisture and biome for one hex."""
@@ -47,6 +50,13 @@ class ClimateGen:
             return ClimateTile(heat=0.0, moisture=0.0, biome_type=BiomeType.OCEAN)
 
         cq, cr = canonical
+        cached_entry = self._climate_cache.get((cq, cr))
+        if cached_entry is not None:
+            cached_terrain, cached_height, cached_tile = cached_entry
+            if cached_terrain == terrain_type and cached_height == height:
+                self._climate_cache.move_to_end((cq, cr))
+                return cached_tile
+
         heat = self._heat_at(cq, cr, height)
         moisture = self._moisture_at(cq, cr, terrain_type, height)
 
@@ -54,7 +64,17 @@ class ClimateGen:
             moisture = min(1.0, moisture + 0.16)
 
         biome_type = self._biome_for(terrain_type, height, heat, moisture)
-        return ClimateTile(heat=heat, moisture=moisture, biome_type=biome_type)
+        tile = ClimateTile(heat=heat, moisture=moisture, biome_type=biome_type)
+        self._climate_cache[(cq, cr)] = (terrain_type, height, tile)
+        self._climate_cache.move_to_end((cq, cr))
+        while len(self._climate_cache) > self._cache_maxsize:
+            self._climate_cache.popitem(last=False)
+        return tile
+
+    def _resolve_cache_maxsize(self) -> int:
+        if self.config.profile.value == "DEV":
+            return self.config.width * self.config.height
+        return 200_000
 
     def _latitude_factor(self, r: int) -> float:
         center_r = (self.config.r_min + self.config.r_max) / 2.0

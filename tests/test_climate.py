@@ -104,6 +104,19 @@ class TestClimateGen(unittest.TestCase):
         self.assertGreaterEqual(coast, inland)
         self.assertGreaterEqual(mountain, plains)
 
+    def test_climate_cache_uses_canonical_wrap_x_key(self) -> None:
+        config = build_world_config(WorldProfile.DEV)
+        climate_gen = ClimateGen(seed=909, config=config)
+
+        base_q, base_r = 21, -11
+        wrapped_q = base_q + config.width
+
+        climate_gen.get_tile(base_q, base_r, TerrainType.PLAINS, 0.45)
+        cache_size_after_first = len(climate_gen._climate_cache)
+        climate_gen.get_tile(wrapped_q, base_r, TerrainType.PLAINS, 0.45)
+
+        self.assertEqual(len(climate_gen._climate_cache), cache_size_after_first)
+
     def test_wrap_x_is_deterministic_for_climate(self) -> None:
         config = build_world_config(WorldProfile.DEV)
         climate_gen = ClimateGen(seed=909, config=config)
