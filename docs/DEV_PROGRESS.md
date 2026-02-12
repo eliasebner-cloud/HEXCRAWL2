@@ -35,6 +35,10 @@
 - Fullscreen-Toggle über `F11` ergänzt.
 - Input-/Eventpfade weiter stabilisiert.
 
+### WG-0 – WorldConfig & Scales & Wrap-X canonicalize
+- WorldConfig eingeführt (`target/dev/macro/chunk`, Wrap-Flags).
+- `canonicalize(q,r)` + Wrap-X + r-bounds umgesetzt; Worldgen/Climate darauf umgestellt; Tests ergänzt.
+
 ## Aktueller Stand
 
 - Spiel läuft mit zwei Modi: **World** und **Local** (`TAB` zum Wechseln).
@@ -42,18 +46,19 @@
 - **Local** unterstützt Grid-Navigation über `WASD`.
 - Zeitmodell ist aktiv: Local läuft in Realtime, World wird per Ticks fortgeschrieben (`T` + Travel-Distanz).
 - Worldgen liefert deterministische Terrain/Height/Klima/Biome-Werte inklusive Debug-Anzeige.
+- Finite Worldprofile (DEV/TARGET) sind aktiv; Wrap-X ist im Debug sichtbar.
 - Fullscreen ist über `F11` verfügbar.
 
 ## Nächste 3 PRs (Worldgen-First)
 
-1. **WorldConfig & finite map scaffolding**
-   - `target/dev/macro/chunk` als zentrale Konfiguration einführen.
-   - Finite Welt mit Wrap-X und ohne Wrap-Y verbindlich machen.
-
-2. **Continents / Ocean basins (correlated height)**
+1. **WG-1: Continents / Ocean basins (correlated height)**
    - Zusammenhängende Landmassen und Ozeanbecken erzeugen.
    - Fleckige Noise-Verteilung durch korrelierte Makrostrukturen ersetzen.
 
-3. **Tectonics plates + mountain belts**
+2. **WG-2: Tectonic plates (Voronoi) + mountain belts**
    - Voronoi-Plattenmodell integrieren.
    - Grenztypen ableiten und Gebirgsgürtel/Rifts/Trenches prägen.
+
+3. **WG-3: Height polish**
+   - Smoothing/Ridge-Betonung für lesbarere Höhenverläufe.
+   - Ruhigere Küsten und bessere Übergänge zwischen Makroformen.
