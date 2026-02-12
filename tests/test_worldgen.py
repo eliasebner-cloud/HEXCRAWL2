@@ -52,6 +52,19 @@ class TestWorldGen(unittest.TestCase):
         self.assertEqual(world_gen.get_tile(base_q, base_r), world_gen.get_tile(wrapped_q, base_r))
 
 
+    def test_lattice_noise_does_not_wrap_y_when_wrap_y_disabled(self) -> None:
+        world_gen = WorldGen(seed=1337, config=build_world_config(WorldProfile.DEV))
+
+        freq = 4
+        ix = 7
+        iy = 1
+        y_offset = freq
+
+        base = world_gen._lattice_noise(ix, iy, x_period=freq, y_period=None)
+        shifted = world_gen._lattice_noise(ix, iy + y_offset, x_period=freq, y_period=None)
+
+        self.assertNotEqual(base, shifted)
+
     def test_height_neighbor_correlation(self) -> None:
         world_gen = WorldGen(seed=1337, config=build_world_config(WorldProfile.DEV))
 
