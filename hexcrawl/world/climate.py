@@ -40,8 +40,8 @@ class ClimateGen:
 
     def get_tile(self, q: int, r: int, terrain_type: TerrainType, height: float) -> ClimateTile:
         """Return deterministic heat/moisture and biome for one hex."""
-        heat = self._heat_at(q, r)
-        moisture = self._moisture_at(q, r)
+        heat = self._heat_at(q, r, height)
+        moisture = self._moisture_at(q, r, terrain_type, height)
 
         if terrain_type == TerrainType.COAST:
             moisture = min(1.0, moisture + 0.16)
@@ -49,15 +49,42 @@ class ClimateGen:
         biome_type = self._biome_for(terrain_type, height, heat, moisture)
         return ClimateTile(heat=heat, moisture=moisture, biome_type=biome_type)
 
-    def _heat_at(self, q: int, r: int) -> float:
+    def _heat_at(self, q: int, r: int, height: float) -> float:
         # Soft latitudinal cooling plus local noise variation.
         latitude = min(1.0, abs(r) / 48.0)
         latitude_heat = 1.0 - latitude
         noise = self._noise01("heat", q, r)
-        return self._clamp01((latitude_heat * 0.7) + (noise * 0.3))
+        altitude_cooling = self._clamp01(height) * 0.38
+        return self._clamp01((latitude_heat * 0.7) + (noise * 0.3) - altitude_cooling)
 
-    def _moisture_at(self, q: int, r: int) -> float:
-        return self._noise01("moisture", q, r)
+    def _moisture_at(self, q: int, r: int, terrain_type: TerrainType, height: float) -> float:
+        moisture = self._noise01("moisture", q, r)
+
+        if terrain_type == TerrainType.COAST:
+            moisture += 0.08
+
+        if terrain_type == TerrainType.HILLS:
+            moisture += 0.07
+        elif terrain_type in (TerrainType.MOUNTAINS, TerrainType.SNOW):
+            moisture += 0.14
+
+        # Simple deterministic west-to-east rainshadow.
+        west_barrier = self._orographic_barrier(q - 1, r)
+        east_barrier = self._orographic_barrier(q + 1, r)
+        moisture -= west_barrier * 0.1
+        moisture += east_barrier * 0.03
+
+        if terrain_type in (TerrainType.HILLS, TerrainType.MOUNTAINS, TerrainType.SNOW):
+            moisture += 0.02
+
+        if height > 0.86:
+            moisture -= 0.03
+
+        return self._clamp01(moisture)
+
+    def _orographic_barrier(self, q: int, r: int) -> float:
+        ridge_noise = self._noise01("ridge", q, r)
+        return self._clamp01((ridge_noise - 0.58) / 0.42)
 
     def _biome_for(
         self,
