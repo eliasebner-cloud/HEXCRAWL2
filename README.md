@@ -40,5 +40,6 @@ python main.py
 - `WASD` (Local): Cursor im Local-Grid bewegen
 - `RMB` (World): Kamera pannen
 - `Wheel` (World): Zoom
-- `LMB` (World): Hex hover/select
+- `LMB` (World): Hex auswählen
+- `ENTER` / `G` (World): Zur ausgewählten Hex reisen
 - `T` (World): World-Step (Tick) auslösen

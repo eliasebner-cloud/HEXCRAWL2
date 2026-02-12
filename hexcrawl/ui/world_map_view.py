@@ -99,6 +99,12 @@ class WorldMapView:
                 self.camera_offset_y += dy
                 self.last_mouse_pos = event.pos
 
+        elif event.type == pygame.MOUSEWHEEL:
+            if event.y > 0:
+                self._apply_zoom(1.1, pygame.mouse.get_pos())
+            elif event.y < 0:
+                self._apply_zoom(1.0 / 1.1, pygame.mouse.get_pos())
+
         elif event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_g):
             self.travel_to_selected()
 
