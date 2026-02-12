@@ -316,6 +316,7 @@ class WorldMapView:
             "B: toggle biome view",
             "RMB drag: pan",
             "Wheel: zoom",
+            "F11: toggle fullscreen",
             "T: world step",
             "ESC: quit",
         ]

@@ -37,6 +37,7 @@ python main.py
 
 - `ESC`: Spiel beenden
 - `TAB`: Wechsel zwischen World- und Local-Ansicht
+- `F11`: Fullscreen/Windowed umschalten
 - `WASD` (Local): Cursor im Local-Grid bewegen
 - `RMB` (World): Kamera pannen
 - `Wheel` (World): Zoom

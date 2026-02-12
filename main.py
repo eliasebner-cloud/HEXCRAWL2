@@ -12,16 +12,32 @@ from hexcrawl.world.climate import ClimateGen
 from hexcrawl.world.worldgen import WorldGen
 
 WINDOW_TITLE = "HEXCRAWL"
-WINDOW_SIZE = (1280, 720)
+WINDOW_SIZE = (1920, 1080)
 TARGET_FPS = 60
 WORLD_SEED = 1337
 CLIMATE_SEED = WORLD_SEED + 1
 
 
+def _display_flags(fullscreen: bool) -> int:
+    base_flags = pygame.SCALED
+    if fullscreen:
+        return base_flags | pygame.FULLSCREEN
+    return base_flags
+
+
+def _set_display_mode(fullscreen: bool) -> pygame.Surface:
+    return pygame.display.set_mode(WINDOW_SIZE, _display_flags(fullscreen))
+
+
 def run() -> None:
     """Start the world-map skeleton with pan/zoom/select interactions."""
     pygame.init()
-    screen = pygame.display.set_mode(WINDOW_SIZE)
+    is_fullscreen = True
+    try:
+        screen = _set_display_mode(is_fullscreen)
+    except pygame.error:
+        is_fullscreen = False
+        screen = _set_display_mode(is_fullscreen)
     pygame.display.set_caption(WINDOW_TITLE)
 
     clock = pygame.time.Clock()
@@ -43,6 +59,13 @@ def run() -> None:
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_TAB:
                 mode = "LOCAL" if mode == "WORLD" else "WORLD"
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
+                is_fullscreen = not is_fullscreen
+                try:
+                    screen = _set_display_mode(is_fullscreen)
+                except pygame.error:
+                    is_fullscreen = False
+                    screen = _set_display_mode(is_fullscreen)
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_t:
                 time_model.world_step()
             else:

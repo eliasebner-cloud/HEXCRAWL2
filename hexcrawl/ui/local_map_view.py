@@ -113,6 +113,7 @@ class LocalMapView:
             "TAB: toggle mode",
             "WASD: move cursor",
             "T: world step",
+            "F11: toggle fullscreen",
             "ESC: quit",
         ]
 
