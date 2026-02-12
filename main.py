@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pygame
 
+from hexcrawl.ui.local_map_view import LocalMapView
 from hexcrawl.ui.world_map_view import WorldMapView
 
 WINDOW_TITLE = "HEXCRAWL"
@@ -19,6 +20,8 @@ def run() -> None:
 
     clock = pygame.time.Clock()
     world_map = WorldMapView(WINDOW_SIZE[0], WINDOW_SIZE[1])
+    local_map = LocalMapView(WINDOW_SIZE[0], WINDOW_SIZE[1])
+    mode = "WORLD"
 
     running = True
     while running:
@@ -28,11 +31,20 @@ def run() -> None:
                 running = False
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 running = False
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_TAB:
+                mode = "LOCAL" if mode == "WORLD" else "WORLD"
             else:
-                world_map.handle_event(event)
+                if mode == "WORLD":
+                    world_map.handle_event(event)
+                else:
+                    local_map.handle_event(event)
 
-        world_map.update(dt)
-        world_map.draw(screen)
+        if mode == "WORLD":
+            world_map.update(dt)
+            world_map.draw(screen)
+        else:
+            local_map.update(dt)
+            local_map.draw(screen, world_map.selected_hex)
 
         fps = clock.get_fps()
         pygame.display.set_caption(f"{WINDOW_TITLE} | FPS: {fps:05.1f}")

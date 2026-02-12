@@ -28,8 +28,8 @@ class WorldMapView:
         self.dragging = False
         self.last_mouse_pos: tuple[int, int] | None = None
 
-        self.hover_hex = (0, 0)
-        self.selected_hex = (0, 0)
+        self.hover_hex: tuple[int, int] | None = None
+        self.selected_hex: tuple[int, int] | None = None
         self.mouse_pixel = (0, 0)
 
         self.background_color = (16, 18, 22)
@@ -76,6 +76,8 @@ class WorldMapView:
         self.mouse_pixel = (mx, my)
         if self._mouse_in_world((mx, my)):
             self.hover_hex = self._screen_to_axial(mx, my)
+        else:
+            self.hover_hex = None
 
     def draw(self, screen: pygame.Surface) -> None:
         screen.fill(self.background_color)
@@ -132,9 +134,9 @@ class WorldMapView:
                 sx, sy = self._world_to_screen(wx, wy)
                 points = self._hex_corners(sx, sy)
 
-                if q == self.selected_hex[0] and r == self.selected_hex[1]:
+                if self.selected_hex is not None and q == self.selected_hex[0] and r == self.selected_hex[1]:
                     pygame.draw.polygon(screen, self.selected_color, points, width=4)
-                elif q == self.hover_hex[0] and r == self.hover_hex[1]:
+                elif self.hover_hex is not None and q == self.hover_hex[0] and r == self.hover_hex[1]:
                     pygame.draw.polygon(screen, self.hover_color, points, width=3)
                 else:
                     pygame.draw.polygon(screen, self.grid_line_color, points, width=1)
@@ -145,8 +147,8 @@ class WorldMapView:
 
         lines = [
             "Mode: World",
-            f"Selected hex: {self.selected_hex}",
-            f"Hover hex:    {self.hover_hex}",
+            f"Selected hex: {self.selected_hex if self.selected_hex is not None else '(none)'}",
+            f"Hover hex:    {self.hover_hex if self.hover_hex is not None else '(none)'}",
             f"Mouse pixel:  {self.mouse_pixel}",
             (
                 "Camera offset: "
@@ -155,6 +157,7 @@ class WorldMapView:
             f"Zoom: {self.zoom:.2f}",
             "",
             "Controls:",
+            "TAB: toggle mode",
             "LMB: select hex",
             "RMB drag: pan",
             "Wheel: zoom",
