@@ -39,6 +39,19 @@
 - WorldConfig eingeführt (`target/dev/macro/chunk`, Wrap-Flags).
 - `canonicalize(q,r)` + Wrap-X + r-bounds umgesetzt; Worldgen/Climate darauf umgestellt; Tests ergänzt.
 
+### WG-1 – Continents / Ocean Basins
+- Correlated Height für zusammenhängende Landmassen/Ozeanbecken umgesetzt.
+- X-Wrap seam-seamless umgesetzt und Layer-Caching ergänzt.
+
+### WG-2 – Tectonic Plates + Boundaries
+- Tektonik-Plattenmodell integriert (Plate-Zuordnung + Boundary-Kinds/Strength).
+- Boundary-Information in Height-Integration eingebunden (Gebirgsgürtel/Rift/Trench-Prägung).
+  - Fix: Caches begrenzt (bounded caches) und Vorzeichenfehler in Boundary-Integration korrigiert.
+
+### WG-3 – Height Polish
+- Boundary-Falloff und lokales Smoothing ergänzt.
+- WG-3-Tests ergänzt; deterministische Height-Polish-Pipeline stabilisiert.
+
 ## Aktueller Stand
 
 - Spiel läuft mit zwei Modi: **World** und **Local** (`TAB` zum Wechseln).
@@ -51,14 +64,11 @@
 
 ## Nächste 3 PRs (Worldgen-First)
 
-1. **WG-1: Continents / Ocean basins (correlated height)**
-   - Zusammenhängende Landmassen und Ozeanbecken erzeugen.
-   - Fleckige Noise-Verteilung durch korrelierte Makrostrukturen ersetzen.
+1. **WG-4: Climate v3**
+   - Wind/Ocean Proximity/Rainshadow auf den neuen Gebirgsgürteln integrieren.
 
-2. **WG-2: Tectonic plates (Voronoi) + mountain belts**
-   - Voronoi-Plattenmodell integrieren.
-   - Grenztypen ableiten und Gebirgsgürtel/Rifts/Trenches prägen.
+2. **WG-5: Hydrology**
+   - Flow Direction + Accumulation sowie Rivers/Lakes implementieren.
 
-3. **WG-3: Height polish**
-   - Smoothing/Ridge-Betonung für lesbarere Höhenverläufe.
-   - Ruhigere Küsten und bessere Übergänge zwischen Makroformen.
+3. **WG-6: Erosion/Polish**
+   - Leichte Erosion und Coastline-Polish für spielbare Endform.

@@ -13,6 +13,7 @@
 - `world`
   - Weltbezogene Datenstrukturen und (schrittweise) Worldgen-Pipeline.
   - Zielbild: Height → Klima → Hydro → Biomes als getrennte, testbare Schritte.
+  - Kernmodule `world_config.py`, `worldgen.py`, `tectonics.py` und `climate.py` sind etabliert und arbeiten deterministisch sowie wrap-aware (X-Wrap ohne Seam-Artefakte).
 
 - `sim`
   - Laufende Simulationen (aktuell TimeModel, später NPC/Faktionen/Ökologie).

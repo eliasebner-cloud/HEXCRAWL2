@@ -1,5 +1,11 @@
 # Tectonics Sub-Roadmap
 
+## Status
+
+- Status: Implementiert in WG-2.
+- Bounded caches sind aktiv, um Speicherverhalten stabil zu halten.
+- Sign-Fix in der Boundary-Integration korrigiert die Vorzeichenrichtung für Relief-Modifier.
+
 ## Ziel
 
 Ein deterministisches, hex-geeignetes Plattenmodell, das großräumige Reliefstrukturen erzeugt: Gebirgsgürtel, Rifts und Tiefseegräben.
