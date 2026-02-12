@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import math
+from enum import Enum
 
 import pygame
 
 from hexcrawl.core.hex_math import axial_distance, axial_round, axial_to_pixel, pixel_to_axial
 from hexcrawl.core.player import Player
 from hexcrawl.sim.time_model import TimeModel
+from hexcrawl.world.climate import BiomeType, ClimateGen, ClimateTile
 from hexcrawl.world.worldgen import TerrainType, WorldGen
+
+
+class ColorMode(str, Enum):
+    TERRAIN = "TERRAIN"
+    BIOME = "BIOME"
 
 
 class WorldMapView:
@@ -22,6 +29,7 @@ class WorldMapView:
         time_model: TimeModel,
         player: Player,
         world_gen: WorldGen,
+        climate_gen: ClimateGen,
     ) -> None:
         self.panel_width = 280
         self.world_width = max(200, screen_width - self.panel_width)
@@ -54,6 +62,8 @@ class WorldMapView:
         self.time_model = time_model
         self.player = player
         self.world_gen = world_gen
+        self.climate_gen = climate_gen
+        self.color_mode = ColorMode.TERRAIN
 
         self.terrain_colors: dict[TerrainType, tuple[int, int, int]] = {
             TerrainType.OCEAN: (45, 89, 134),
@@ -62,6 +72,18 @@ class WorldMapView:
             TerrainType.HILLS: (114, 122, 90),
             TerrainType.MOUNTAINS: (126, 132, 142),
             TerrainType.SNOW: (228, 235, 245),
+        }
+
+        self.biome_colors: dict[BiomeType, tuple[int, int, int]] = {
+            BiomeType.OCEAN: (45, 89, 134),
+            BiomeType.COASTAL: (210, 196, 146),
+            BiomeType.DESERT: (232, 204, 120),
+            BiomeType.SAVANNA: (170, 168, 94),
+            BiomeType.GRASSLAND: (104, 156, 90),
+            BiomeType.TEMPERATE_FOREST: (68, 122, 74),
+            BiomeType.TAIGA: (88, 118, 114),
+            BiomeType.TUNDRA: (164, 174, 166),
+            BiomeType.ALPINE: (205, 211, 222),
         }
 
     @property
@@ -107,6 +129,11 @@ class WorldMapView:
 
         elif event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_g):
             self.travel_to_selected()
+
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_b:
+            self.color_mode = (
+                ColorMode.BIOME if self.color_mode == ColorMode.TERRAIN else ColorMode.TERRAIN
+            )
 
     def travel_to_selected(self) -> None:
         """Move player to selected hex and spend world ticks based on distance."""
@@ -158,6 +185,20 @@ class WorldMapView:
             points.append((x, y))
         return points
 
+    def _tile_color(self, q: int, r: int) -> tuple[int, int, int]:
+        tile = self.world_gen.get_tile(q, r)
+        if self.color_mode == ColorMode.TERRAIN:
+            return self.terrain_colors[tile.terrain_type]
+        climate = self.climate_gen.get_tile(q, r, tile.terrain_type, tile.height)
+        return self.biome_colors[climate.biome_type]
+
+    def _climate_for_hex(self, hex_coords: tuple[int, int] | None) -> ClimateTile | None:
+        if hex_coords is None:
+            return None
+        q, r = hex_coords
+        tile = self.world_gen.get_tile(q, r)
+        return self.climate_gen.get_tile(q, r, tile.terrain_type, tile.height)
+
     def _draw_hex_grid(self, screen: pygame.Surface) -> None:
         margin = self.hex_size
         corners = [
@@ -186,9 +227,8 @@ class WorldMapView:
                 sx, sy = self._world_to_screen(wx, wy)
                 points = self._hex_corners(sx, sy)
 
-                tile = self.world_gen.get_tile(q, r)
-                terrain_color = self.terrain_colors[tile.terrain_type]
-                pygame.draw.polygon(screen, terrain_color, points, width=0)
+                fill_color = self._tile_color(q, r)
+                pygame.draw.polygon(screen, fill_color, points, width=0)
                 pygame.draw.polygon(screen, self.grid_line_color, points, width=1)
 
                 if self.hover_hex is not None and (q, r) == self.hover_hex:
@@ -208,9 +248,12 @@ class WorldMapView:
 
         hover_tile = None if self.hover_hex is None else self.world_gen.get_tile(*self.hover_hex)
         selected_tile = None if self.selected_hex is None else self.world_gen.get_tile(*self.selected_hex)
+        hover_climate = self._climate_for_hex(self.hover_hex)
+        selected_climate = self._climate_for_hex(self.selected_hex)
 
         lines = [
             "Mode: World",
+            f"Color mode: {self.color_mode.value}",
             f"Player hex:   {self.player.hex_pos}",
             f"Selected hex: {self.selected_hex if self.selected_hex is not None else '(none)'}",
             f"Hover hex:    {self.hover_hex if self.hover_hex is not None else '(none)'}",
@@ -223,12 +266,34 @@ class WorldMapView:
                 f"{hover_tile.height:.3f}" if hover_tile is not None else "Hover height:  (none)"
             ),
             (
+                "Hover biome:   "
+                f"{hover_climate.biome_type.value if hover_climate is not None else '(none)'}"
+            ),
+            (
+                "Hover heat/moisture: "
+                f"{hover_climate.heat:.3f}/{hover_climate.moisture:.3f}"
+                if hover_climate is not None
+                else "Hover heat/moisture: (none)"
+            ),
+            (
                 "Selected terrain: "
                 f"{selected_tile.terrain_type.value if selected_tile is not None else '(none)'}"
             ),
             (
                 "Selected height:  "
-                f"{selected_tile.height:.3f}" if selected_tile is not None else "Selected height:  (none)"
+                f"{selected_tile.height:.3f}"
+                if selected_tile is not None
+                else "Selected height:  (none)"
+            ),
+            (
+                "Selected biome:   "
+                f"{selected_climate.biome_type.value if selected_climate is not None else '(none)'}"
+            ),
+            (
+                "Selected heat/moisture: "
+                f"{selected_climate.heat:.3f}/{selected_climate.moisture:.3f}"
+                if selected_climate is not None
+                else "Selected heat/moisture: (none)"
             ),
             (
                 "Travel cost:  "
@@ -248,6 +313,7 @@ class WorldMapView:
             "TAB: toggle mode",
             "LMB: select hex",
             "ENTER/G: travel to selected",
+            "B: toggle biome view",
             "RMB drag: pan",
             "Wheel: zoom",
             "T: world step",
