@@ -1,35 +1,51 @@
-# Roadmap
+# Roadmap (Vision v2)
 
-Kurzüberblick über die geplante Reihenfolge. Fokus: zuerst Navigierbarkeit und Zeitkonsistenz, danach Weltinhalte und schließlich lebendige Simulation.
+Diese Roadmap priorisiert **Worldgen-First**: Die nächsten PRs fokussieren auf eine glaubwürdige, deterministische, finite Hex-Welt als Fundament für alle späteren Systeme.
 
-## 1) Navigation
-- World-/Local-Flow robust machen (Selektion, bestätigte Bewegung, Rücksprünge).
-- Ziel: Spieler kann sich konsistent orientieren und bewegen, bevor Inhalte vertieft werden.
+## Priorität: Worldgen-First
 
-## 2) Time
-- TimeModel zu einer zentralen GameClock ausbauen (Kalender + Travel-Cost).
-- Ziel: Jede Bewegung/Simulation hat nachvollziehbare Zeitkosten.
+Die Reihenfolge ist verbindlich:
+1. **Worldgen Core**
+   - Kontinente
+   - Tektonik
+   - Klima
+   - Hydrologie
+   - Erosion/Polish
+2. **Ressourcen / Infrastruktur / POIs**
+3. **Simulation (Fraktionen, NPC LOD, Living World)**
+4. **Gameplay (Skyrim/EQ2-ähnliche Exploration + Crafting/Farming-Loops)**
 
-## 3) Worldgen
-- Deterministische Basiskarten (Height/Ocean/Coast) mit Seed.
-- Ziel: reproduzierbare, strukturierte Welt als Fundament für alle weiteren Systeme.
+> Hinweis für kommende PRs: Worldgen-first; POIs/Infrastruktur erst nach Kontinente+Tektonik+Klima+Flüsse.
 
-## 4) Weather
-- Klimadaten (heat/moisture) und einfache Wetterdynamik aufsetzen.
-- Ziel: Umweltlogik, die später Biome, Ertrag und Reise beeinflusst.
+## Große Roadmap (Phasen)
 
-## 5) Infrastruktur
-- Siedlungen, Wege, einfache Netzwerke/Verbindungen.
-- Ziel: Welt erhält funktionale Knotenpunkte für Handel, Reise und Konflikte.
+### Phase A — Worldgen Core
+Ziel: reproduzierbare, spielbare Weltbasis mit realistisch wirkenden Makrostrukturen.
 
-## 6) Fraktionen / NPC LOD
-- Fraktionsziele + NPC-Simulation in abgestuften Detailstufen (LOD).
-- Ziel: große Welt performant simulieren, lokal aber detailreich darstellen.
+Reihenfolge innerhalb der Phase:
+1. **Kontinente/Ozeanbecken** (korrelierte Höhenfelder, keine Noise-Flecken)
+2. **Tektonik** (Platten + Gebirgsgürtel/Rifts/Trenches)
+3. **Klima** (Latitude/Wind/Rainshadow/Altitude)
+4. **Hydrologie** (Flüsse, Seen, Abfluss bis Meer)
+5. **Erosion/Polish** (leichtgewichtig, gameplay-tauglich)
 
-## 7) Living World
-- Ereignisse, Reaktionen und längerfristige Weltzustandsänderungen.
-- Ziel: Welt entwickelt sich auch ohne direkten Spielerinput glaubwürdig weiter.
+### Phase B — Ressourcen, Infrastruktur, POIs
+Ziel: Welt mit nutzbaren Inhalten füllen, nachdem die physische Basis steht.
 
-## 8) Gameplay
-- Quests, Progression, Risiko/Belohnung und Kernspielschleifen ausbauen.
-- Ziel: aus den Systemen entsteht ein spielbarer Hexcrawl mit klaren Entscheidungen.
+### Phase C — Simulation
+Ziel: Fraktionen/NPCs/Living-World auf robustem Terrain-/Klima-/Hydro-Fundament.
+
+### Phase D — Gameplay
+Ziel: Kernspielschleifen (Exploration im Stil Skyrim/EQ2, Crafting, Farming, Risiko/Belohnung) auf stabiler Weltsimulation.
+
+## Single Source of Truth
+
+`docs/ROADMAP.md` ist die **Top-Level-Steuerung**. Detailplanung und DoD pro Worldgen-Baustein liegen in:
+
+- `docs/roadmap/WORLDGEN.md`
+- `docs/roadmap/TECTONICS.md`
+- `docs/roadmap/CLIMATE.md`
+- `docs/roadmap/HYDROLOGY.md`
+- `docs/roadmap/EROSION.md`
+
+Alle kommenden Worldgen-PRs referenzieren diese Sub-Roadmaps explizit.

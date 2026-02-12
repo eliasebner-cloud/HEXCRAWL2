@@ -27,24 +27,33 @@
 - Deterministische Terrain-Generierung per Seed ergänzt.
 - Terrain/Height-Debugwerte in der World-Ansicht verfügbar.
 
+### PR8 – Climate/Biomes
+- Climate- und Biome-Layer ergänzt.
+- Heat/Moisture/Biome-Informationen in Debug/Visualisierung nutzbar.
+
+### PR9 – Fullscreen/F11 + Input-Härtung
+- Fullscreen-Toggle über `F11` ergänzt.
+- Input-/Eventpfade weiter stabilisiert.
+
 ## Aktueller Stand
 
 - Spiel läuft mit zwei Modi: **World** und **Local** (`TAB` zum Wechseln).
 - **World** unterstützt Pan, Zoom, Hover/Select und Travel (`ENTER`/`G`).
 - **Local** unterstützt Grid-Navigation über `WASD`.
 - Zeitmodell ist aktiv: Local läuft in Realtime, World wird per Ticks fortgeschrieben (`T` + Travel-Distanz).
-- Worldgen liefert deterministische Terrain/Height-Werte inklusive Debug-Anzeige.
+- Worldgen liefert deterministische Terrain/Height/Klima/Biome-Werte inklusive Debug-Anzeige.
+- Fullscreen ist über `F11` verfügbar.
 
-## Nächste 3 PRs
+## Nächste 3 PRs (Worldgen-First)
 
-1. **Climate/Biomes Stub: heat/moisture → biome mapping + Debug-Anzeige**
-   - Datenstruktur für Klima/Biome anlegen.
-   - Erste Visualisierung + Debug-Overlay für Heat/Moisture/Biome.
+1. **WorldConfig & finite map scaffolding**
+   - `target/dev/macro/chunk` als zentrale Konfiguration einführen.
+   - Finite Welt mit Wrap-X und ohne Wrap-Y verbindlich machen.
 
-2. **Zoom/Input-Härtung + Test-Discovery Stabilisierung**
-   - Zoom-Eingaben für unterschiedliche pygame-Eventpfade absichern.
-   - `unittest`-Discovery auf Konsolen-Defaults robust halten.
+2. **Continents / Ocean basins (correlated height)**
+   - Zusammenhängende Landmassen und Ozeanbecken erzeugen.
+   - Fleckige Noise-Verteilung durch korrelierte Makrostrukturen ersetzen.
 
-3. **Travel UX: Validation + kleines Feedback im Debug-Panel**
-   - Travel-Trigger und Auswahlzustände klarer sichtbar machen.
-   - Fehlende/ungültige Travel-Aktionen besser rückmelden.
+3. **Tectonics plates + mountain belts**
+   - Voronoi-Plattenmodell integrieren.
+   - Grenztypen ableiten und Gebirgsgürtel/Rifts/Trenches prägen.
