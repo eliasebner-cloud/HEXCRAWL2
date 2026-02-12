@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pygame
 
+from hexcrawl.core.player import Player
 from hexcrawl.sim.time_model import TimeModel
 from hexcrawl.ui.local_map_view import LocalMapView
 from hexcrawl.ui.world_map_view import WorldMapView
@@ -21,8 +22,9 @@ def run() -> None:
 
     clock = pygame.time.Clock()
     time_model = TimeModel()
-    world_map = WorldMapView(WINDOW_SIZE[0], WINDOW_SIZE[1], time_model)
-    local_map = LocalMapView(WINDOW_SIZE[0], WINDOW_SIZE[1], time_model)
+    player = Player()
+    world_map = WorldMapView(WINDOW_SIZE[0], WINDOW_SIZE[1], time_model, player)
+    local_map = LocalMapView(WINDOW_SIZE[0], WINDOW_SIZE[1], time_model, player)
     mode = "WORLD"
 
     running = True
@@ -50,7 +52,8 @@ def run() -> None:
             world_map.draw(screen)
         else:
             local_map.update(dt)
-            local_map.draw(screen, world_map.selected_hex)
+            local_context_hex = player.hex_pos
+            local_map.draw(screen, local_context_hex)
 
         fps = clock.get_fps()
         pygame.display.set_caption(f"{WINDOW_TITLE} | FPS: {fps:05.1f}")

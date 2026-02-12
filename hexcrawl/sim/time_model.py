@@ -14,9 +14,9 @@ class TimeModel:
         """Advance local realtime by frame delta seconds."""
         self.local_elapsed_seconds += max(0.0, dt)
 
-    def world_step(self) -> None:
-        """Advance world time by exactly one tick."""
-        self.world_tick_count += 1
+    def world_step(self, ticks: int = 1) -> None:
+        """Advance world time by the requested positive number of ticks."""
+        self.world_tick_count += max(0, ticks)
 
     @property
     def local_elapsed_mmss(self) -> str:
