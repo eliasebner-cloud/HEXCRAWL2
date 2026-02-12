@@ -51,6 +51,19 @@ class TestWorldGen(unittest.TestCase):
         wrapped_q = base_q + config.width
         self.assertEqual(world_gen.get_tile(base_q, base_r), world_gen.get_tile(wrapped_q, base_r))
 
+    def test_worldgen_cache_uses_canonical_wrap_x_key(self) -> None:
+        config = build_world_config(WorldProfile.DEV)
+        world_gen = WorldGen(seed=1337, config=config)
+
+        base_q, base_r = 15, 9
+        wrapped_q = base_q + config.width
+
+        world_gen.get_tile(base_q, base_r)
+        cache_size_after_first = len(world_gen._tile_cache)
+        world_gen.get_tile(wrapped_q, base_r)
+
+        self.assertEqual(len(world_gen._tile_cache), cache_size_after_first)
+
 
     def test_lattice_noise_does_not_wrap_y_when_wrap_y_disabled(self) -> None:
         world_gen = WorldGen(seed=1337, config=build_world_config(WorldProfile.DEV))
