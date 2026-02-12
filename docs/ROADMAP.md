@@ -15,7 +15,7 @@ Die Reihenfolge ist verbindlich:
 3. **Simulation (Fraktionen, NPC LOD, Living World)**
 4. **Gameplay (Skyrim/EQ2-ähnliche Exploration + Crafting/Farming-Loops)**
 
-> Hinweis für kommende PRs: Worldgen-first; POIs/Infrastruktur erst nach Kontinente+Tektonik+Klima+Flüsse.
+> Hinweis für kommende PRs: WG-0 done; weiterhin Worldgen-first mit WG-1 bis WG-3 (Continents/Ocean basins → Plates/Mountain belts → Height polish).
 
 ## Große Roadmap (Phasen)
 

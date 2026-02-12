@@ -29,36 +29,38 @@
 ## PR-Reihenfolge (WG-0 bis WG-6)
 
 ### WG-0 — WorldConfig & Scales
-**Inhalt:** zentrale WorldConfig für target/dev/macro/chunk, Wrap-X, Seed-Derivation.
+**Status:** ✅ DONE
+
+**Inhalt:** zentrale WorldConfig für target/dev/macro/chunk, Wrap-X, Seed-Derivation sowie kanonische Koordinatenabbildung für finite Welt mit X-Wrap.
 
 **Definition of Done:**
 - Konfiguration ist zentral, dokumentiert und testbar.
 - Dev/Target-Modus umschaltbar ohne Logikduplikate.
-- Chunk-Koordinaten und Wrap-X-Regeln klar definiert.
+- Chunk-Koordinaten, `canonicalize(q,r)`, r-bounds und Wrap-X-Regeln klar definiert und in Worldgen/Climate verwendet.
 
 ### WG-1 — Continents / Ocean Basins
-**Inhalt:** korrelierte Höhenfelder für zusammenhängende Kontinente/Ozeanbecken.
+**Inhalt:** korrelierte Höhenfelder für zusammenhängende Kontinente/Ozeanbecken statt unkorrelierter Flecken-Noise.
 
 **Definition of Done:**
-- Keine „Fleckenwelt“ aus isolierten Noise-Inseln.
-- Mehrere große Landmassen + Ozeanbecken erkennbar.
+- Sichtbarer Effekt: mehrere große, zusammenhängende Landmassen plus klare Ozeanbecken (kein „Fleckenlook“).
 - Deterministisch reproduzierbar per Seed.
+- Wrap-seamless in X ohne sichtbare Kante am Seam.
 
 ### WG-2 — Plates & Mountain Belts
-**Inhalt:** Voronoi-Platten, Grenzklassifikation, Initialprägung von Gebirgs-/Rift-/Trench-Zonen.
+**Inhalt:** Voronoi-Platten, Grenzklassifikation und Initialprägung von Gebirgs-/Rift-/Trench-Zonen.
 
 **Definition of Done:**
-- Jede Hex einer Platte zugeordnet.
-- Grenztypen (konvergent/divergent/transform) ableitbar.
-- Height-Modifier für Gebirge/Rifts/Trenches vorhanden.
+- Sichtbarer Effekt: nachvollziehbare Gebirgsgürtel, Trenches und Rifts entlang Plattengrenzen.
+- Deterministisch: jede Hex stabil einer Platte zugeordnet, Grenztypen reproduzierbar ableitbar.
+- Wrap-seamless in X: Platten-/Grenzlogik funktioniert ohne Seam-Artefakte.
 
 ### WG-3 — Height Polish
-**Inhalt:** geglättete Übergänge, Ridge-Betonung, Artefaktreduktion.
+**Inhalt:** geglättete Übergänge, Ridge-Betonung, Artefaktreduktion mit ruhigeren Küsten und besseren Makro-Übergängen.
 
 **Definition of Done:**
-- Höhenkarte wirkt zusammenhängend und navigierbar.
-- Harte Kanten/Artefakte reduziert.
-- Gebirgsgürtel bleiben visuell klar.
+- Sichtbarer Effekt: zusammenhängendere Höhenkarte, ruhigere Küsten und natürlichere Übergänge.
+- Deterministisch: identischer Seed ergibt identische Polish-Ergebnisse.
+- Wrap-seamless in X ohne neue Kanten/Brüche durch Smoothing/Polish.
 
 ### WG-4 — Climate v3
 **Inhalt:** Latitude + Wind + Rainshadow + Altitude-Cooling.
