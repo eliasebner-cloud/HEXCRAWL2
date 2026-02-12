@@ -9,7 +9,7 @@ import math
 from collections import OrderedDict
 
 from hexcrawl.core.hex_math import AXIAL_DIRECTIONS
-from hexcrawl.world.tectonics import BoundaryKind, PlateType, TectonicsModel
+from hexcrawl.world.tectonics import BoundaryData, BoundaryKind, PlateData, PlateType, TectonicsModel
 from hexcrawl.world.world_config import WorldConfig, default_world_config
 
 
@@ -39,12 +39,17 @@ class WorldGen:
     PLAINS_THRESHOLD = 0.55
     HILLS_THRESHOLD = 0.72
     MOUNTAINS_THRESHOLD = 0.88
+    BOUNDARY_FALLOFF_RADIUS = 3
 
     def __init__(self, seed: int, config: WorldConfig | None = None) -> None:
         self.seed = int(seed)
         self.config = default_world_config() if config is None else config
         self._height_cache_maxsize = self._resolve_cache_maxsize()
         self._tile_cache_maxsize = self._resolve_cache_maxsize()
+        self._raw_height_cache_maxsize = self._resolve_cache_maxsize()
+        self._boundary_influence_cache_maxsize = self._resolve_cache_maxsize()
+        self._raw_height_cache: OrderedDict[tuple[int, int], float] = OrderedDict()
+        self._boundary_influence_cache: OrderedDict[tuple[int, int], float] = OrderedDict()
         self._height_cache: OrderedDict[tuple[int, int], float] = OrderedDict()
         self._tile_cache: OrderedDict[tuple[int, int], WorldTile] = OrderedDict()
         self._tectonics = TectonicsModel(seed=self.seed, config=self.config)
@@ -84,11 +89,21 @@ class WorldGen:
         if cached_height is not None:
             return cached_height
 
+        smoothed_height = self._smoothed_height_at(q, r)
+
+        clamped = max(0.0, min(1.0, smoothed_height))
+        self._cache_set(self._height_cache, (q, r), clamped, self._height_cache_maxsize)
+        return clamped
+
+    def _raw_height_at(self, q: int, r: int) -> float:
+        cached_height = self._cache_get(self._raw_height_cache, (q, r))
+        if cached_height is not None:
+            return cached_height
+
         x, y = self._normalized_world_pos(q, r)
         base_height = self._fbm_height(x, y)
 
         plate = self._tectonics.plate_at(q, r)
-        boundary = self._tectonics.boundary_at(q, r)
 
         plate_bias = 0.0
         if plate is not None:
@@ -96,6 +111,77 @@ class WorldGen:
                 plate_bias = 0.09
             else:
                 plate_bias = -0.09
+
+        boundary_bias = self._boundary_falloff_influence_at(q, r)
+
+        height = base_height + plate_bias + boundary_bias
+        clamped = max(0.0, min(1.0, height))
+        self._cache_set(self._raw_height_cache, (q, r), clamped, self._raw_height_cache_maxsize)
+        return clamped
+
+    def _smoothed_height_at(self, q: int, r: int) -> float:
+        center = self._raw_height_at(q, r)
+        total = center * 0.60
+        total_weight = 0.60
+
+        for dq, dr in AXIAL_DIRECTIONS:
+            neighbor = self.config.canonicalize(q + dq, r + dr)
+            if neighbor is None:
+                continue
+            total += self._raw_height_at(*neighbor) * 0.40 / len(AXIAL_DIRECTIONS)
+            total_weight += 0.40 / len(AXIAL_DIRECTIONS)
+
+        if total_weight == 0.0:
+            return center
+        return total / total_weight
+
+    def _boundary_falloff_influence_at(self, q: int, r: int) -> float:
+        cached = self._cache_get(self._boundary_influence_cache, (q, r))
+        if cached is not None:
+            return cached
+
+        radius = self.BOUNDARY_FALLOFF_RADIUS
+        weighted_sum = 0.0
+        total_weight = 0.0
+
+        for dq in range(-radius, radius + 1):
+            for dr in range(-radius, radius + 1):
+                ds = -dq - dr
+                distance = max(abs(dq), abs(dr), abs(ds))
+                if distance > radius:
+                    continue
+
+                sample = self.config.canonicalize(q + dq, r + dr)
+                if sample is None:
+                    continue
+
+                weight = (radius + 1 - distance) / (radius + 1)
+                if weight <= 0.0:
+                    continue
+
+                sample_plate = self._tectonics.plate_at(*sample)
+                sample_boundary = self._tectonics.boundary_at(*sample)
+                weighted_sum += self._boundary_bias_at(sample[0], sample[1], sample_plate, sample_boundary) * weight
+                total_weight += weight
+
+        influence = 0.0 if total_weight == 0.0 else weighted_sum / total_weight
+        self._cache_set(
+            self._boundary_influence_cache,
+            (q, r),
+            influence,
+            self._boundary_influence_cache_maxsize,
+        )
+        return influence
+
+    def _boundary_bias_at(
+        self,
+        q: int,
+        r: int,
+        plate: PlateData | None,
+        boundary: BoundaryData | None,
+    ) -> float:
+        if plate is None or boundary is None:
+            return 0.0
 
         boundary_bias = 0.0
         if boundary.kind == BoundaryKind.CONVERGENT:
@@ -115,11 +201,7 @@ class WorldGen:
                 boundary_bias -= 0.16 * boundary.strength
         elif boundary.kind == BoundaryKind.TRANSFORM:
             boundary_bias += 0.03 * boundary.strength
-
-        height = base_height + plate_bias + boundary_bias
-        clamped = max(0.0, min(1.0, height))
-        self._cache_set(self._height_cache, (q, r), clamped, self._height_cache_maxsize)
-        return clamped
+        return boundary_bias
 
     def _resolve_cache_maxsize(self) -> int:
         if self.config.profile.value == "DEV":
