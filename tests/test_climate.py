@@ -58,12 +58,39 @@ class TestClimateGen(unittest.TestCase):
         high_samples = []
         for q in range(-24, 25, 2):
             for r in range(-24, 25, 2):
-                low_samples.append(climate_gen.get_tile(q, r, TerrainType.PLAINS, 0.1).heat)
-                high_samples.append(climate_gen.get_tile(q, r, TerrainType.MOUNTAINS, 0.95).heat)
+                low_samples.append(climate_gen.get_tile(q, r, TerrainType.PLAINS, 0.15).heat)
+                high_samples.append(climate_gen.get_tile(q, r, TerrainType.PLAINS, 0.92).heat)
 
         low_avg = sum(low_samples) / len(low_samples)
         high_avg = sum(high_samples) / len(high_samples)
         self.assertLess(high_avg, low_avg)
+
+    def test_rainshadow_can_reduce_moisture_deterministically(self) -> None:
+        class StubClimateGen(ClimateGen):
+            def _noise01(self, channel: str, q: int, r: int) -> float:
+                return 0.5
+
+            def _orographic_barrier(self, q: int, r: int) -> float:
+                if q == 9:
+                    return 1.0
+                if q == 7:
+                    return 0.0
+                return 0.0
+
+        climate_gen = StubClimateGen(seed=1)
+
+        dry_leeward = climate_gen.get_tile(8, 0, TerrainType.PLAINS, 0.4).moisture
+
+        class WetStubClimateGen(StubClimateGen):
+            def _orographic_barrier(self, q: int, r: int) -> float:
+                if q == 7:
+                    return 1.0
+                if q == 9:
+                    return 0.0
+                return 0.0
+
+        wetter_windward = WetStubClimateGen(seed=1).get_tile(8, 0, TerrainType.PLAINS, 0.4).moisture
+        self.assertLess(dry_leeward, wetter_windward)
 
     def test_orographic_and_coastal_moisture_bias(self) -> None:
         climate_gen = ClimateGen(seed=909)
