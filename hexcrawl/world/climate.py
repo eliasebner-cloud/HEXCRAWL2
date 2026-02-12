@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from enum import Enum
 import hashlib
 
+from hexcrawl.world.world_config import WorldConfig, default_world_config
 from hexcrawl.world.worldgen import TerrainType
 
 
@@ -35,13 +36,19 @@ class ClimateTile:
 class ClimateGen:
     """Seeded deterministic climate mapping from axial hex to biome."""
 
-    def __init__(self, seed: int) -> None:
+    def __init__(self, seed: int, config: WorldConfig | None = None) -> None:
         self.seed = int(seed)
+        self.config = default_world_config() if config is None else config
 
     def get_tile(self, q: int, r: int, terrain_type: TerrainType, height: float) -> ClimateTile:
         """Return deterministic heat/moisture and biome for one hex."""
-        heat = self._heat_at(q, r, height)
-        moisture = self._moisture_at(q, r, terrain_type, height)
+        canonical = self.config.canonicalize(q, r)
+        if canonical is None:
+            return ClimateTile(heat=0.0, moisture=0.0, biome_type=BiomeType.OCEAN)
+
+        cq, cr = canonical
+        heat = self._heat_at(cq, cr, height)
+        moisture = self._moisture_at(cq, cr, terrain_type, height)
 
         if terrain_type == TerrainType.COAST:
             moisture = min(1.0, moisture + 0.16)
@@ -49,9 +56,14 @@ class ClimateGen:
         biome_type = self._biome_for(terrain_type, height, heat, moisture)
         return ClimateTile(heat=heat, moisture=moisture, biome_type=biome_type)
 
+    def _latitude_factor(self, r: int) -> float:
+        center_r = (self.config.r_min + self.config.r_max) / 2.0
+        max_dist = max(1.0, (self.config.height - 1) / 2.0)
+        return self._clamp01(abs(r - center_r) / max_dist)
+
     def _heat_at(self, q: int, r: int, height: float) -> float:
         # Broad latitudinal pattern with moderate local variation.
-        latitude = min(1.0, abs(r) / 48.0)
+        latitude = self._latitude_factor(r)
         latitude_heat = 1.0 - latitude
         macro_noise = self._noise01("heat_macro", q // 4, r // 4)
         local_noise = self._noise01("heat_local", q, r)
@@ -60,7 +72,7 @@ class ClimateGen:
         return self._clamp01(heat - altitude_cooling)
 
     def _moisture_at(self, q: int, r: int, terrain_type: TerrainType, height: float) -> float:
-        latitude = min(1.0, abs(r) / 48.0)
+        latitude = self._latitude_factor(r)
         equatorial_band = 1.0 - abs(0.45 - latitude) / 0.45
         macro_noise = self._noise01("moisture_macro", q // 5, r // 5)
         local_noise = self._noise01("moisture_local", q, r)
