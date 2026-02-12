@@ -5,6 +5,7 @@ from __future__ import annotations
 import unittest
 
 from hexcrawl.core.hex_math import AXIAL_DIRECTIONS
+from hexcrawl.world.tectonics import BoundaryKind
 from hexcrawl.world.world_config import WorldProfile, build_world_config
 from hexcrawl.world.worldgen import TerrainType, WorldGen
 
@@ -107,6 +108,63 @@ class TestWorldGen(unittest.TestCase):
         mean_far = sum(far_diffs) / len(far_diffs)
 
         self.assertLess(mean_near, mean_far)
+
+
+    def test_boundary_falloff_influences_non_boundary_tile(self) -> None:
+        world_gen = WorldGen(seed=1337, config=build_world_config(WorldProfile.DEV))
+
+        found = False
+        for q in range(-60, 61):
+            for r in range(-45, 46):
+                boundary = world_gen._tectonics.boundary_at(q, r)
+                if boundary.kind != BoundaryKind.CONVERGENT or boundary.strength <= 0.30:
+                    continue
+
+                for dq, dr in ((2, 0), (2, -2), (0, -2), (-2, 0), (-2, 2), (0, 2)):
+                    tq = q + dq
+                    tr = r + dr
+                    target_boundary = world_gen._tectonics.boundary_at(tq, tr)
+                    if target_boundary.kind != BoundaryKind.NONE:
+                        continue
+
+                    influence = world_gen._boundary_falloff_influence_at(tq, tr)
+                    self.assertNotEqual(influence, 0.0)
+                    found = True
+                    break
+                if found:
+                    break
+            if found:
+                break
+
+        self.assertTrue(found, msg="No suitable convergent-boundary sample found for falloff test")
+
+    def test_smoothed_height_uses_local_neighbor_band(self) -> None:
+        world_gen = WorldGen(seed=2025, config=build_world_config(WorldProfile.DEV))
+
+        found_difference = False
+        for q in range(-50, 51, 5):
+            for r in range(-40, 41, 5):
+                canonical = world_gen.config.canonicalize(q, r)
+                if canonical is None:
+                    continue
+                cq, cr = canonical
+
+                samples = [world_gen._raw_height_at(cq, cr)]
+                for dq, dr in AXIAL_DIRECTIONS:
+                    neighbor = world_gen.config.canonicalize(cq + dq, cr + dr)
+                    if neighbor is None:
+                        continue
+                    samples.append(world_gen._raw_height_at(*neighbor))
+
+                smoothed = world_gen._smoothed_height_at(cq, cr)
+                self.assertGreaterEqual(smoothed, min(samples))
+                self.assertLessEqual(smoothed, max(samples))
+
+                raw = world_gen._raw_height_at(cq, cr)
+                if abs(smoothed - raw) > 1e-12:
+                    found_difference = True
+
+        self.assertTrue(found_difference, msg="Smoothing never diverged from raw heights in sampled area")
 
     def test_out_of_bounds_r_defaults_to_ocean(self) -> None:
         config = build_world_config(WorldProfile.DEV)
