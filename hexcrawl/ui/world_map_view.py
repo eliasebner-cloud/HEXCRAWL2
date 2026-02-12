@@ -7,12 +7,13 @@ import math
 import pygame
 
 from hexcrawl.core.hex_math import axial_round, axial_to_pixel, pixel_to_axial
+from hexcrawl.sim.time_model import TimeModel
 
 
 class WorldMapView:
     """Renders a viewport-only pointy-top axial hex grid."""
 
-    def __init__(self, screen_width: int, screen_height: int) -> None:
+    def __init__(self, screen_width: int, screen_height: int, time_model: TimeModel) -> None:
         self.panel_width = 280
         self.world_width = max(200, screen_width - self.panel_width)
         self.world_height = screen_height
@@ -40,6 +41,7 @@ class WorldMapView:
         self.panel_text = (225, 230, 240)
 
         self.font = pygame.font.SysFont("consolas", 18)
+        self.time_model = time_model
 
     @property
     def hex_size(self) -> float:
@@ -155,12 +157,15 @@ class WorldMapView:
                 f"({self.camera_offset_x:.1f}, {self.camera_offset_y:.1f})"
             ),
             f"Zoom: {self.zoom:.2f}",
+            f"Local time: {self.time_model.local_elapsed_mmss}",
+            f"World ticks: {self.time_model.world_tick_count}",
             "",
             "Controls:",
             "TAB: toggle mode",
             "LMB: select hex",
             "RMB drag: pan",
             "Wheel: zoom",
+            "T: world step",
             "ESC: quit",
         ]
 

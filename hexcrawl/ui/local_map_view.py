@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import pygame
 
+from hexcrawl.sim.time_model import TimeModel
+
 
 class LocalMapView:
     """Renders a square local grid placeholder in the left map area."""
 
-    def __init__(self, screen_width: int, screen_height: int) -> None:
+    def __init__(self, screen_width: int, screen_height: int, time_model: TimeModel) -> None:
         self.panel_width = 280
         self.map_width = max(200, screen_width - self.panel_width)
         self.map_height = screen_height
@@ -25,6 +27,7 @@ class LocalMapView:
         self.panel_text = (225, 230, 240)
 
         self.font = pygame.font.SysFont("consolas", 18)
+        self.time_model = time_model
 
     def handle_event(self, event: pygame.event.Event) -> None:
         if event.type != pygame.KEYDOWN:
@@ -101,10 +104,13 @@ class LocalMapView:
             f"grid_w: {self.grid_w}",
             f"grid_h: {self.grid_h}",
             f"Local for selected world hex: {selected_text}",
+            f"Local time: {self.time_model.local_elapsed_mmss}",
+            f"World ticks: {self.time_model.world_tick_count}",
             "",
             "Controls:",
             "TAB: toggle mode",
             "WASD: move cursor",
+            "T: world step",
             "ESC: quit",
         ]
 
