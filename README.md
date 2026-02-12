@@ -25,10 +25,20 @@ Abhängigkeiten installieren:
 pip install -r requirements.txt
 ```
 
-Starten:
+## Run
 
 ```bash
 python main.py
 ```
 
 > Hinweis: Es wird **pygame-ce** verwendet. Ein separates `pygame` ist nicht nötig.
+
+## Controls
+
+- `ESC`: Spiel beenden
+- `TAB`: Wechsel zwischen World- und Local-Ansicht
+- `WASD` (Local): Cursor im Local-Grid bewegen
+- `RMB` (World): Kamera pannen
+- `Wheel` (World): Zoom
+- `LMB` (World): Hex hover/select
+- `T` (World): World-Step (Tick) auslösen
