@@ -51,6 +51,31 @@ class TestClimateGen(unittest.TestCase):
                 tile = climate_gen.get_tile(q, r, TerrainType.OCEAN, 0.1)
                 self.assertEqual(tile.biome_type, BiomeType.OCEAN)
 
+    def test_higher_altitude_is_cooler_on_average(self) -> None:
+        climate_gen = ClimateGen(seed=77)
+
+        low_samples = []
+        high_samples = []
+        for q in range(-24, 25, 2):
+            for r in range(-24, 25, 2):
+                low_samples.append(climate_gen.get_tile(q, r, TerrainType.PLAINS, 0.1).heat)
+                high_samples.append(climate_gen.get_tile(q, r, TerrainType.MOUNTAINS, 0.95).heat)
+
+        low_avg = sum(low_samples) / len(low_samples)
+        high_avg = sum(high_samples) / len(high_samples)
+        self.assertLess(high_avg, low_avg)
+
+    def test_orographic_and_coastal_moisture_bias(self) -> None:
+        climate_gen = ClimateGen(seed=909)
+
+        coast = climate_gen.get_tile(3, -4, TerrainType.COAST, 0.3).moisture
+        inland = climate_gen.get_tile(3, -4, TerrainType.PLAINS, 0.3).moisture
+        mountain = climate_gen.get_tile(8, 5, TerrainType.MOUNTAINS, 0.92).moisture
+        plains = climate_gen.get_tile(8, 5, TerrainType.PLAINS, 0.4).moisture
+
+        self.assertGreaterEqual(coast, inland)
+        self.assertGreaterEqual(mountain, plains)
+
 
 if __name__ == "__main__":
     unittest.main()
