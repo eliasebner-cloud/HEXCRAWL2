@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+from collections import OrderedDict
 from dataclasses import dataclass
 from enum import Enum
 
 from hexcrawl.core.hex_math import AXIAL_DIRECTIONS
-from hexcrawl.world.world_config import WorldConfig
+from hexcrawl.world.world_config import WorldConfig, WorldProfile
 
 
 class PlateType(str, Enum):
@@ -44,14 +45,15 @@ class TectonicsModel:
         self.seed = int(seed)
         self.config = config
         self._seeds = self._build_plate_seeds()
-        self._plate_cache: dict[tuple[int, int], PlateData] = {}
-        self._boundary_cache: dict[tuple[int, int], BoundaryData] = {}
+        self._cache_maxsize = 200_000 if config.profile == WorldProfile.TARGET else config.width * config.height
+        self._plate_cache: OrderedDict[tuple[int, int], PlateData] = OrderedDict()
+        self._boundary_cache: OrderedDict[tuple[int, int], BoundaryData] = OrderedDict()
 
     def plate_at(self, q: int, r: int) -> PlateData | None:
         canonical = self.config.canonicalize(q, r)
         if canonical is None:
             return None
-        cached = self._plate_cache.get(canonical)
+        cached = self._cache_get(self._plate_cache, canonical)
         if cached is not None:
             return cached
 
@@ -62,14 +64,14 @@ class TectonicsModel:
             plate_type=self._plate_type(plate_id),
             motion=self._MOTIONS[self._hash_u64("motion", plate_id) % len(self._MOTIONS)],
         )
-        self._plate_cache[canonical] = plate
+        self._cache_put(self._plate_cache, canonical, plate)
         return plate
 
     def boundary_at(self, q: int, r: int) -> BoundaryData:
         canonical = self.config.canonicalize(q, r)
         if canonical is None:
             return BoundaryData(kind=BoundaryKind.NONE, strength=0.0)
-        cached = self._boundary_cache.get(canonical)
+        cached = self._cache_get(self._boundary_cache, canonical)
         if cached is not None:
             return cached
 
@@ -90,7 +92,7 @@ class TectonicsModel:
             if strength > best.strength:
                 best = BoundaryData(kind=kind, strength=strength)
 
-        self._boundary_cache[canonical] = best
+        self._cache_put(self._boundary_cache, canonical, best)
         return best
 
     def _classify_boundary(
@@ -119,11 +121,28 @@ class TectonicsModel:
         n_abs = abs(normal_component)
         t_abs = abs(tangential_component)
 
-        if normal_component <= -0.25:
-            return BoundaryKind.CONVERGENT, min(1.0, n_abs / 2.5)
         if normal_component >= 0.25:
+            return BoundaryKind.CONVERGENT, min(1.0, n_abs / 2.5)
+        if normal_component <= -0.25:
             return BoundaryKind.DIVERGENT, min(1.0, n_abs / 2.5)
         return BoundaryKind.TRANSFORM, min(1.0, max(0.0, t_abs / 2.5))
+
+    def _cache_get(self, cache: OrderedDict[tuple[int, int], PlateData | BoundaryData], key: tuple[int, int]) -> PlateData | BoundaryData | None:
+        value = cache.get(key)
+        if value is not None:
+            cache.move_to_end(key)
+        return value
+
+    def _cache_put(
+        self,
+        cache: OrderedDict[tuple[int, int], PlateData | BoundaryData],
+        key: tuple[int, int],
+        value: PlateData | BoundaryData,
+    ) -> None:
+        cache[key] = value
+        cache.move_to_end(key)
+        if len(cache) > self._cache_maxsize:
+            cache.popitem(last=False)
 
     def _build_plate_seeds(self) -> tuple[tuple[int, int, int], ...]:
         plate_count = max(12, min(96, (self.config.width * self.config.height) // 4096))
