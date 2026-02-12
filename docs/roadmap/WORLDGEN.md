@@ -39,7 +39,11 @@
 - Chunk-Koordinaten, `canonicalize(q,r)`, r-bounds und Wrap-X-Regeln klar definiert und in Worldgen/Climate verwendet.
 
 ### WG-1 — Continents / Ocean Basins
+**Status:** ✅ DONE
+
 **Inhalt:** korrelierte Höhenfelder für zusammenhängende Kontinente/Ozeanbecken statt unkorrelierter Flecken-Noise.
+
+**Hinweis:** Correlated height ist umgesetzt; X-Wrap läuft seam-seamless mit Cache-Unterstützung.
 
 **Definition of Done:**
 - Sichtbarer Effekt: mehrere große, zusammenhängende Landmassen plus klare Ozeanbecken (kein „Fleckenlook“).
@@ -47,7 +51,11 @@
 - Wrap-seamless in X ohne sichtbare Kante am Seam.
 
 ### WG-2 — Plates & Mountain Belts
+**Status:** ✅ DONE
+
 **Inhalt:** Voronoi-Platten, Grenzklassifikation und Initialprägung von Gebirgs-/Rift-/Trench-Zonen.
+
+**Hinweis:** Boundary kinds/strength sind integriert; bounded caches und Sign-Fix wurden nachgezogen.
 
 **Definition of Done:**
 - Sichtbarer Effekt: nachvollziehbare Gebirgsgürtel, Trenches und Rifts entlang Plattengrenzen.
@@ -55,7 +63,11 @@
 - Wrap-seamless in X: Platten-/Grenzlogik funktioniert ohne Seam-Artefakte.
 
 ### WG-3 — Height Polish
+**Status:** ✅ DONE
+
 **Inhalt:** geglättete Übergänge, Ridge-Betonung, Artefaktreduktion mit ruhigeren Küsten und besseren Makro-Übergängen.
+
+**Hinweis:** Boundary falloff + lokales Smoothing sind aktiv; WG-3-Tests decken den Schritt ab.
 
 **Definition of Done:**
 - Sichtbarer Effekt: zusammenhängendere Höhenkarte, ruhigere Küsten und natürlichere Übergänge.
