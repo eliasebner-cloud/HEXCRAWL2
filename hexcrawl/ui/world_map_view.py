@@ -9,12 +9,20 @@ import pygame
 from hexcrawl.core.hex_math import axial_distance, axial_round, axial_to_pixel, pixel_to_axial
 from hexcrawl.core.player import Player
 from hexcrawl.sim.time_model import TimeModel
+from hexcrawl.world.worldgen import TerrainType, WorldGen
 
 
 class WorldMapView:
     """Renders a viewport-only pointy-top axial hex grid."""
 
-    def __init__(self, screen_width: int, screen_height: int, time_model: TimeModel, player: Player) -> None:
+    def __init__(
+        self,
+        screen_width: int,
+        screen_height: int,
+        time_model: TimeModel,
+        player: Player,
+        world_gen: WorldGen,
+    ) -> None:
         self.panel_width = 280
         self.world_width = max(200, screen_width - self.panel_width)
         self.world_height = screen_height
@@ -45,6 +53,16 @@ class WorldMapView:
         self.font = pygame.font.SysFont("consolas", 18)
         self.time_model = time_model
         self.player = player
+        self.world_gen = world_gen
+
+        self.terrain_colors: dict[TerrainType, tuple[int, int, int]] = {
+            TerrainType.OCEAN: (45, 89, 134),
+            TerrainType.COAST: (208, 188, 132),
+            TerrainType.PLAINS: (108, 153, 89),
+            TerrainType.HILLS: (114, 122, 90),
+            TerrainType.MOUNTAINS: (126, 132, 142),
+            TerrainType.SNOW: (228, 235, 245),
+        }
 
     @property
     def hex_size(self) -> float:
@@ -162,6 +180,9 @@ class WorldMapView:
                 sx, sy = self._world_to_screen(wx, wy)
                 points = self._hex_corners(sx, sy)
 
+                tile = self.world_gen.get_tile(q, r)
+                terrain_color = self.terrain_colors[tile.terrain_type]
+                pygame.draw.polygon(screen, terrain_color, points, width=0)
                 pygame.draw.polygon(screen, self.grid_line_color, points, width=1)
 
                 if self.hover_hex is not None and (q, r) == self.hover_hex:
@@ -178,15 +199,36 @@ class WorldMapView:
         pygame.draw.rect(screen, self.panel_bg, panel_rect)
 
         travel_cost = self.selected_travel_cost
+
+        hover_tile = None if self.hover_hex is None else self.world_gen.get_tile(*self.hover_hex)
+        selected_tile = None if self.selected_hex is None else self.world_gen.get_tile(*self.selected_hex)
+
         lines = [
             "Mode: World",
             f"Player hex:   {self.player.hex_pos}",
             f"Selected hex: {self.selected_hex if self.selected_hex is not None else '(none)'}",
             f"Hover hex:    {self.hover_hex if self.hover_hex is not None else '(none)'}",
             (
+                "Hover terrain: "
+                f"{hover_tile.terrain_type.value if hover_tile is not None else '(none)'}"
+            ),
+            (
+                "Hover height:  "
+                f"{hover_tile.height:.3f}" if hover_tile is not None else "Hover height:  (none)"
+            ),
+            (
+                "Selected terrain: "
+                f"{selected_tile.terrain_type.value if selected_tile is not None else '(none)'}"
+            ),
+            (
+                "Selected height:  "
+                f"{selected_tile.height:.3f}" if selected_tile is not None else "Selected height:  (none)"
+            ),
+            (
                 "Travel cost:  "
                 f"{travel_cost if travel_cost is not None else '(none)'}"
             ),
+            f"Seed: {self.world_gen.seed}",
             f"Mouse pixel:  {self.mouse_pixel}",
             (
                 "Camera offset: "

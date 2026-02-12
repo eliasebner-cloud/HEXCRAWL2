@@ -8,10 +8,12 @@ from hexcrawl.core.player import Player
 from hexcrawl.sim.time_model import TimeModel
 from hexcrawl.ui.local_map_view import LocalMapView
 from hexcrawl.ui.world_map_view import WorldMapView
+from hexcrawl.world.worldgen import WorldGen
 
 WINDOW_TITLE = "HEXCRAWL"
 WINDOW_SIZE = (1280, 720)
 TARGET_FPS = 60
+WORLD_SEED = 1337
 
 
 def run() -> None:
@@ -23,7 +25,8 @@ def run() -> None:
     clock = pygame.time.Clock()
     time_model = TimeModel()
     player = Player()
-    world_map = WorldMapView(WINDOW_SIZE[0], WINDOW_SIZE[1], time_model, player)
+    world_gen = WorldGen(WORLD_SEED)
+    world_map = WorldMapView(WINDOW_SIZE[0], WINDOW_SIZE[1], time_model, player, world_gen)
     local_map = LocalMapView(WINDOW_SIZE[0], WINDOW_SIZE[1], time_model, player)
     mode = "WORLD"
 
