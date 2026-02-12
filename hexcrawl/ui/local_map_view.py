@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import pygame
 
+from hexcrawl.core.player import Player
 from hexcrawl.sim.time_model import TimeModel
 
 
 class LocalMapView:
     """Renders a square local grid placeholder in the left map area."""
 
-    def __init__(self, screen_width: int, screen_height: int, time_model: TimeModel) -> None:
+    def __init__(self, screen_width: int, screen_height: int, time_model: TimeModel, player: Player) -> None:
         self.panel_width = 280
         self.map_width = max(200, screen_width - self.panel_width)
         self.map_height = screen_height
@@ -28,6 +29,7 @@ class LocalMapView:
 
         self.font = pygame.font.SysFont("consolas", 18)
         self.time_model = time_model
+        self.player = player
 
     def handle_event(self, event: pygame.event.Event) -> None:
         if event.type != pygame.KEYDOWN:
@@ -48,10 +50,10 @@ class LocalMapView:
     def update(self, dt: float) -> None:
         del dt
 
-    def draw(self, screen: pygame.Surface, selected_world_hex: tuple[int, int] | None) -> None:
+    def draw(self, screen: pygame.Surface, context_world_hex: tuple[int, int]) -> None:
         screen.fill(self.background_color)
         self._draw_grid(screen)
-        self._draw_debug_panel(screen, selected_world_hex)
+        self._draw_debug_panel(screen, context_world_hex)
 
     def _draw_grid(self, screen: pygame.Surface) -> None:
         cell_size = min(self.map_width / self.grid_w, self.map_height / self.grid_h)
@@ -91,19 +93,19 @@ class LocalMapView:
     def _draw_debug_panel(
         self,
         screen: pygame.Surface,
-        selected_world_hex: tuple[int, int] | None,
+        context_world_hex: tuple[int, int],
     ) -> None:
         panel_rect = pygame.Rect(self.map_width, 0, self.panel_width, self.map_height)
         pygame.draw.rect(screen, self.panel_bg, panel_rect)
 
-        selected_text = f"{selected_world_hex}" if selected_world_hex is not None else "(none)"
         lines = [
             "Mode: Local",
             f"cursor_x: {self.cursor_x}",
             f"cursor_y: {self.cursor_y}",
             f"grid_w: {self.grid_w}",
             f"grid_h: {self.grid_h}",
-            f"Local for selected world hex: {selected_text}",
+            f"Player hex: {self.player.hex_pos}",
+            f"Local context world hex: {context_world_hex}",
             f"Local time: {self.time_model.local_elapsed_mmss}",
             f"World ticks: {self.time_model.world_tick_count}",
             "",

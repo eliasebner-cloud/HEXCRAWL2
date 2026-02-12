@@ -58,3 +58,13 @@ def axial_round(q: float, r: float) -> tuple[int, int]:
     y = -x - z
     rx, _, rz = cube_round(x, y, z)
     return rx, rz
+
+
+def axial_distance(a: tuple[int, int], b: tuple[int, int]) -> int:
+    """Return hex distance between two axial coordinates."""
+    aq, ar = a
+    bq, br = b
+    dx = aq - bq
+    dz = ar - br
+    dy = -dx - dz
+    return int(max(abs(dx), abs(dy), abs(dz)))

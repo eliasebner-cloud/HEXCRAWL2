@@ -6,14 +6,15 @@ import math
 
 import pygame
 
-from hexcrawl.core.hex_math import axial_round, axial_to_pixel, pixel_to_axial
+from hexcrawl.core.hex_math import axial_distance, axial_round, axial_to_pixel, pixel_to_axial
+from hexcrawl.core.player import Player
 from hexcrawl.sim.time_model import TimeModel
 
 
 class WorldMapView:
     """Renders a viewport-only pointy-top axial hex grid."""
 
-    def __init__(self, screen_width: int, screen_height: int, time_model: TimeModel) -> None:
+    def __init__(self, screen_width: int, screen_height: int, time_model: TimeModel, player: Player) -> None:
         self.panel_width = 280
         self.world_width = max(200, screen_width - self.panel_width)
         self.world_height = screen_height
@@ -37,15 +38,23 @@ class WorldMapView:
         self.grid_line_color = (76, 86, 102)
         self.hover_color = (97, 175, 239)
         self.selected_color = (224, 108, 117)
+        self.player_color = (152, 195, 121)
         self.panel_bg = (28, 32, 40)
         self.panel_text = (225, 230, 240)
 
         self.font = pygame.font.SysFont("consolas", 18)
         self.time_model = time_model
+        self.player = player
 
     @property
     def hex_size(self) -> float:
         return self.base_hex_size * self.zoom
+
+    @property
+    def selected_travel_cost(self) -> int | None:
+        if self.selected_hex is None:
+            return None
+        return axial_distance(self.player.hex_pos, self.selected_hex)
 
     def handle_event(self, event: pygame.event.Event) -> None:
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -71,6 +80,21 @@ class WorldMapView:
                 self.camera_offset_x += dx
                 self.camera_offset_y += dy
                 self.last_mouse_pos = event.pos
+
+        elif event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_g):
+            self.travel_to_selected()
+
+    def travel_to_selected(self) -> None:
+        """Move player to selected hex and spend world ticks based on distance."""
+        if self.selected_hex is None:
+            return
+
+        distance = axial_distance(self.player.hex_pos, self.selected_hex)
+        if distance <= 0:
+            return
+
+        self.player.move_to(*self.selected_hex)
+        self.time_model.world_step(distance)
 
     def update(self, dt: float) -> None:
         del dt
@@ -130,27 +154,39 @@ class WorldMapView:
         r_min = math.floor(min(rs)) - 2
         r_max = math.ceil(max(rs)) + 2
 
+        player_q, player_r = self.player.hex_pos
+
         for q in range(q_min, q_max + 1):
             for r in range(r_min, r_max + 1):
                 wx, wy = axial_to_pixel(q, r, self.hex_size)
                 sx, sy = self._world_to_screen(wx, wy)
                 points = self._hex_corners(sx, sy)
 
-                if self.selected_hex is not None and q == self.selected_hex[0] and r == self.selected_hex[1]:
-                    pygame.draw.polygon(screen, self.selected_color, points, width=4)
-                elif self.hover_hex is not None and q == self.hover_hex[0] and r == self.hover_hex[1]:
+                pygame.draw.polygon(screen, self.grid_line_color, points, width=1)
+
+                if self.hover_hex is not None and (q, r) == self.hover_hex:
                     pygame.draw.polygon(screen, self.hover_color, points, width=3)
-                else:
-                    pygame.draw.polygon(screen, self.grid_line_color, points, width=1)
+
+                if self.selected_hex is not None and (q, r) == self.selected_hex:
+                    pygame.draw.polygon(screen, self.selected_color, points, width=4)
+
+                if (q, r) == (player_q, player_r):
+                    pygame.draw.polygon(screen, self.player_color, points, width=6)
 
     def _draw_debug_panel(self, screen: pygame.Surface) -> None:
         panel_rect = pygame.Rect(self.world_width, 0, self.panel_width, self.world_height)
         pygame.draw.rect(screen, self.panel_bg, panel_rect)
 
+        travel_cost = self.selected_travel_cost
         lines = [
             "Mode: World",
+            f"Player hex:   {self.player.hex_pos}",
             f"Selected hex: {self.selected_hex if self.selected_hex is not None else '(none)'}",
             f"Hover hex:    {self.hover_hex if self.hover_hex is not None else '(none)'}",
+            (
+                "Travel cost:  "
+                f"{travel_cost if travel_cost is not None else '(none)'}"
+            ),
             f"Mouse pixel:  {self.mouse_pixel}",
             (
                 "Camera offset: "
@@ -163,6 +199,7 @@ class WorldMapView:
             "Controls:",
             "TAB: toggle mode",
             "LMB: select hex",
+            "ENTER/G: travel to selected",
             "RMB drag: pan",
             "Wheel: zoom",
             "T: world step",
