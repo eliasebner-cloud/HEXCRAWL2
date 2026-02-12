@@ -108,7 +108,7 @@ class WorldGen:
         iy1 = iy0 + 1
 
         x_period = freq
-        y_period = freq
+        y_period = freq if self.config.wrap_y else None
 
         n00 = self._lattice_noise(ix0, iy0, x_period, y_period)
         n10 = self._lattice_noise(ix1, iy0, x_period, y_period)
@@ -122,9 +122,9 @@ class WorldGen:
         nx1 = self._lerp(n01, n11, ux)
         return self._lerp(nx0, nx1, uy)
 
-    def _lattice_noise(self, ix: int, iy: int, x_period: int, y_period: int) -> float:
+    def _lattice_noise(self, ix: int, iy: int, x_period: int, y_period: int | None) -> float:
         wrapped_x = ix % x_period
-        wrapped_y = iy % y_period
+        wrapped_y = iy if y_period is None else iy % y_period
         raw = self._noise_u64(wrapped_x, wrapped_y)
         return raw / float((1 << 64) - 1)
 
