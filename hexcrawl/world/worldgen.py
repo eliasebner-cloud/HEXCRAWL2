@@ -9,6 +9,7 @@ import math
 from collections import OrderedDict
 
 from hexcrawl.core.hex_math import AXIAL_DIRECTIONS
+from hexcrawl.world.erosion import ErosionModel
 from hexcrawl.world.hydrology import HydrologyModel
 from hexcrawl.world.tectonics import BoundaryData, BoundaryKind, PlateData, PlateType, TectonicsModel
 from hexcrawl.world.world_config import WorldConfig, default_world_config
@@ -57,8 +58,14 @@ class WorldGen:
         self._hydrology = HydrologyModel(
             seed=self.seed + 3,
             config=self.config,
-            height_fn=self._height_at,
-            is_ocean_fn=lambda q, r: self._is_ocean_height(self._height_at(q, r)),
+            height_fn=self._base_height_at,
+            is_ocean_fn=lambda q, r: self._is_ocean_height(self._base_height_at(q, r)),
+        )
+        self._erosion = ErosionModel(
+            config=self.config,
+            base_height_fn=self._base_height_at,
+            river_strength_fn=self._hydrology.river_strength,
+            flow_to_fn=self._hydrology.flow_to,
         )
 
     def get_tile(self, q: int, r: int) -> WorldTile:
@@ -96,11 +103,15 @@ class WorldGen:
         if cached_height is not None:
             return cached_height
 
-        smoothed_height = self._smoothed_height_at(q, r)
+        eroded_height = self._erosion.eroded_height(q, r)
 
-        clamped = max(0.0, min(1.0, smoothed_height))
+        clamped = max(0.0, min(1.0, eroded_height))
         self._cache_set(self._height_cache, (q, r), clamped, self._height_cache_maxsize)
         return clamped
+
+    def _base_height_at(self, q: int, r: int) -> float:
+        smoothed_height = self._smoothed_height_at(q, r)
+        return max(0.0, min(1.0, smoothed_height))
 
     def _raw_height_at(self, q: int, r: int) -> float:
         cached_height = self._cache_get(self._raw_height_cache, (q, r))
@@ -323,6 +334,9 @@ class WorldGen:
 
     def get_flow_to(self, q: int, r: int) -> tuple[int, int] | None:
         return self._hydrology.flow_to(q, r)
+
+    def get_valley_strength(self, q: int, r: int) -> float:
+        return self._erosion.valley_strength(q, r)
 
     def is_lake(self, q: int, r: int) -> bool:
         return self._hydrology.is_lake(q, r)
