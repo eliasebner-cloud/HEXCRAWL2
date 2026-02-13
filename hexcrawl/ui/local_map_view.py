@@ -6,12 +6,22 @@ import pygame
 
 from hexcrawl.core.player import Player
 from hexcrawl.sim.time_model import TimeModel
+from hexcrawl.world.world_config import WorldConfig
 
 
 class LocalMapView:
     """Renders a square local grid placeholder in the left map area."""
 
-    def __init__(self, screen_width: int, screen_height: int, time_model: TimeModel, player: Player) -> None:
+    def __init__(
+        self,
+        screen_width: int,
+        screen_height: int,
+        time_model: TimeModel,
+        player: Player,
+        world_config: WorldConfig,
+        world_seed: int,
+        climate_seed: int,
+    ) -> None:
         self.panel_width = 280
         self.map_width = max(200, screen_width - self.panel_width)
         self.map_height = screen_height
@@ -30,6 +40,15 @@ class LocalMapView:
         self.font = pygame.font.SysFont("consolas", 18)
         self.time_model = time_model
         self.player = player
+        self.world_config = world_config
+        self.world_seed = world_seed
+        self.climate_seed = climate_seed
+        self.debug_verbosity = "STD"
+
+    def set_debug_verbosity(self, verbosity: str) -> None:
+        if verbosity not in {"MIN", "STD", "ADV"}:
+            raise ValueError(f"Unsupported debug verbosity: {verbosity}")
+        self.debug_verbosity = verbosity
 
     def handle_event(self, event: pygame.event.Event) -> None:
         if event.type != pygame.KEYDOWN:
@@ -99,23 +118,50 @@ class LocalMapView:
         pygame.draw.rect(screen, self.panel_bg, panel_rect)
 
         lines = [
-            "Mode: Local",
-            f"cursor_x: {self.cursor_x}",
-            f"cursor_y: {self.cursor_y}",
-            f"grid_w: {self.grid_w}",
-            f"grid_h: {self.grid_h}",
+            "Mode: LOCAL",
+            f"Debug verbosity: {self.debug_verbosity}",
+            f"World profile: {self.world_config.profile.value}",
+            f"World size: {self.world_config.width}x{self.world_config.height}",
+            f"Seed: {self.world_seed}",
+            f"Climate seed: {self.climate_seed}",
             f"Player hex: {self.player.hex_pos}",
-            f"Local context world hex: {context_world_hex}",
-            f"Local time: {self.time_model.local_elapsed_mmss}",
-            f"World ticks: {self.time_model.world_tick_count}",
-            "",
-            "Controls:",
-            "TAB: toggle mode",
-            "WASD: move cursor",
-            "T: world step",
-            "F11: toggle fullscreen",
-            "ESC: quit",
+            f"Selected hex: {context_world_hex}",
+            f"Hover hex: {(self.cursor_x, self.cursor_y)}",
         ]
+
+        if self.debug_verbosity in {"STD", "ADV"}:
+            lines.extend(
+                [
+                    f"cursor_x: {self.cursor_x}",
+                    f"cursor_y: {self.cursor_y}",
+                    f"grid_w: {self.grid_w}",
+                    f"grid_h: {self.grid_h}",
+                    f"Local context world hex: {context_world_hex}",
+                    f"Local time: {self.time_model.local_elapsed_mmss}",
+                    f"World ticks: {self.time_model.world_tick_count}",
+                ]
+            )
+
+        if self.debug_verbosity == "ADV":
+            lines.extend(
+                [
+                    f"Cursor derived index: {self.cursor_y * self.grid_w + self.cursor_x}",
+                    f"Cursor normalized: ({self.cursor_x / max(1, self.grid_w - 1):.3f}, {self.cursor_y / max(1, self.grid_h - 1):.3f})",
+                ]
+            )
+
+        lines.extend(
+            [
+                "",
+                "Controls:",
+                "TAB: toggle mode",
+                "F2: debug verbosity",
+                "WASD: move cursor",
+                "T: world step",
+                "F11: toggle fullscreen",
+                "ESC: quit",
+            ]
+        )
 
         y = 18
         for line in lines:

@@ -33,11 +33,18 @@ python main.py
 
 > Hinweis: Es wird **pygame-ce** verwendet. Ein separates `pygame` ist nicht nötig.
 
+## Development
+
+```bash
+python tools/check.py
+```
+
 ## Controls
 
 - `ESC`: Spiel beenden
 - `TAB`: Wechsel zwischen World- und Local-Ansicht
 - `F11`: Fullscreen/Windowed umschalten
+- `F2`: Debug-Verbosity umschalten (`MIN` → `STD` → `ADV`)
 - `WASD` (Local): Cursor im Local-Grid bewegen
 - `RMB` (World): Kamera pannen
 - `Wheel` (World): Zoom
@@ -52,6 +59,7 @@ python main.py
 - Vor dem Erstellen einer PR mindestens die Standard-Tests ausführen, z. B.:
 
 ```bash
+python tools/check.py
 python -m unittest -v
 ```
 

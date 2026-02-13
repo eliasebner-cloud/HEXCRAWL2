@@ -67,6 +67,7 @@ class WorldMapView:
         self.climate_gen = climate_gen
         self.world_config = world_config
         self.color_mode = ColorMode.TERRAIN
+        self.debug_verbosity = "STD"
 
         self.terrain_colors: dict[TerrainType, tuple[int, int, int]] = {
             TerrainType.OCEAN: (45, 89, 134),
@@ -137,6 +138,11 @@ class WorldMapView:
             self.color_mode = (
                 ColorMode.BIOME if self.color_mode == ColorMode.TERRAIN else ColorMode.TERRAIN
             )
+
+    def set_debug_verbosity(self, verbosity: str) -> None:
+        if verbosity not in {"MIN", "STD", "ADV"}:
+            raise ValueError(f"Unsupported debug verbosity: {verbosity}")
+        self.debug_verbosity = verbosity
 
     def travel_to_selected(self) -> None:
         """Move player to selected hex and spend world ticks based on distance."""
@@ -258,77 +264,113 @@ class WorldMapView:
         selected_climate = self._climate_for_hex(self.selected_hex)
 
         lines = [
-            "Mode: World",
-            f"Color mode: {self.color_mode.value}",
+            "Mode: WORLD",
+            f"Debug verbosity: {self.debug_verbosity}",
+            f"World profile: {self.world_config.profile.value}",
+            f"World size: {self.world_config.width}x{self.world_config.height}",
+            f"Seed: {self.world_gen.seed}",
+            f"Climate seed: {self.climate_gen.seed}",
             f"Player hex:   {self.player.hex_pos}",
             f"Selected hex: {self.selected_hex if self.selected_hex is not None else '(none)'}",
             f"Hover hex:    {self.hover_hex if self.hover_hex is not None else '(none)'}",
-            (
-                "Hover terrain: "
-                f"{hover_tile.terrain_type.value if hover_tile is not None else '(none)'}"
-            ),
-            (
-                "Hover height:  "
-                f"{hover_tile.height:.3f}" if hover_tile is not None else "Hover height:  (none)"
-            ),
-            (
-                "Hover biome:   "
-                f"{hover_climate.biome_type.value if hover_climate is not None else '(none)'}"
-            ),
-            (
-                "Hover heat/moisture: "
-                f"{hover_climate.heat:.3f}/{hover_climate.moisture:.3f}"
-                if hover_climate is not None
-                else "Hover heat/moisture: (none)"
-            ),
-            (
-                "Selected terrain: "
-                f"{selected_tile.terrain_type.value if selected_tile is not None else '(none)'}"
-            ),
-            (
-                "Selected height:  "
-                f"{selected_tile.height:.3f}"
-                if selected_tile is not None
-                else "Selected height:  (none)"
-            ),
-            (
-                "Selected biome:   "
-                f"{selected_climate.biome_type.value if selected_climate is not None else '(none)'}"
-            ),
-            (
-                "Selected heat/moisture: "
-                f"{selected_climate.heat:.3f}/{selected_climate.moisture:.3f}"
-                if selected_climate is not None
-                else "Selected heat/moisture: (none)"
-            ),
-            (
-                "Travel cost:  "
-                f"{travel_cost if travel_cost is not None else '(none)'}"
-            ),
-            f"World profile: {self.world_config.profile.value}",
-            f"World size: {self.world_config.width}x{self.world_config.height}",
-            f"Wrap X: {self.world_config.wrap_x}",
-            f"Seed: {self.world_gen.seed}",
-            f"Mouse pixel:  {self.mouse_pixel}",
-            (
-                "Camera offset: "
-                f"({self.camera_offset_x:.1f}, {self.camera_offset_y:.1f})"
-            ),
-            f"Zoom: {self.zoom:.2f}",
-            f"Local time: {self.time_model.local_elapsed_mmss}",
-            f"World ticks: {self.time_model.world_tick_count}",
-            "",
-            "Controls:",
-            "TAB: toggle mode",
-            "LMB: select hex",
-            "ENTER/G: travel to selected",
-            "B: toggle biome view",
-            "RMB drag: pan",
-            "Wheel: zoom",
-            "F11: toggle fullscreen",
-            "T: world step",
-            "ESC: quit",
         ]
+
+        if self.debug_verbosity in {"STD", "ADV"}:
+            lines.extend(
+                [
+                    f"Color mode: {self.color_mode.value}",
+                    (
+                        "Hover terrain: "
+                        f"{hover_tile.terrain_type.value if hover_tile is not None else '(none)'}"
+                    ),
+                    (
+                        "Hover height:  "
+                        f"{hover_tile.height:.3f}" if hover_tile is not None else "Hover height:  (none)"
+                    ),
+                    (
+                        "Hover biome:   "
+                        f"{hover_climate.biome_type.value if hover_climate is not None else '(none)'}"
+                    ),
+                    (
+                        "Hover heat/moisture: "
+                        f"{hover_climate.heat:.3f}/{hover_climate.moisture:.3f}"
+                        if hover_climate is not None
+                        else "Hover heat/moisture: (none)"
+                    ),
+                    (
+                        "Selected terrain: "
+                        f"{selected_tile.terrain_type.value if selected_tile is not None else '(none)'}"
+                    ),
+                    (
+                        "Selected height:  "
+                        f"{selected_tile.height:.3f}"
+                        if selected_tile is not None
+                        else "Selected height:  (none)"
+                    ),
+                    (
+                        "Selected biome:   "
+                        f"{selected_climate.biome_type.value if selected_climate is not None else '(none)'}"
+                    ),
+                    (
+                        "Selected heat/moisture: "
+                        f"{selected_climate.heat:.3f}/{selected_climate.moisture:.3f}"
+                        if selected_climate is not None
+                        else "Selected heat/moisture: (none)"
+                    ),
+                    (
+                        "Travel cost:  "
+                        f"{travel_cost if travel_cost is not None else '(none)'}"
+                    ),
+                    f"Wrap X: {self.world_config.wrap_x}",
+                    f"Zoom: {self.zoom:.2f}",
+                    (
+                        "Camera offset: "
+                        f"({self.camera_offset_x:.1f}, {self.camera_offset_y:.1f})"
+                    ),
+                    f"Mouse pixel:  {self.mouse_pixel}",
+                    f"Local time: {self.time_model.local_elapsed_mmss}",
+                    f"World ticks: {self.time_model.world_tick_count}",
+                ]
+            )
+
+        if self.debug_verbosity == "ADV":
+            lines.extend(
+                [
+                    f"World tile cache: {len(self.world_gen._tile_cache)}/{self.world_gen._tile_cache_maxsize}",
+                    f"World height cache: {len(self.world_gen._height_cache)}/{self.world_gen._height_cache_maxsize}",
+                    f"World raw-height cache: {len(self.world_gen._raw_height_cache)}/{self.world_gen._raw_height_cache_maxsize}",
+                    (
+                        "World boundary cache: "
+                        f"{len(self.world_gen._boundary_influence_cache)}/{self.world_gen._boundary_influence_cache_maxsize}"
+                    ),
+                    f"Climate cache: {len(self.climate_gen._climate_cache)}/{self.climate_gen._cache_maxsize}",
+                    (
+                        "Tectonics plate cache: "
+                        f"{len(self.world_gen._tectonics._plate_cache)}/{self.world_gen._tectonics._cache_maxsize}"
+                    ),
+                    (
+                        "Tectonics boundary cache: "
+                        f"{len(self.world_gen._tectonics._boundary_cache)}/{self.world_gen._tectonics._cache_maxsize}"
+                    ),
+                ]
+            )
+
+        lines.extend(
+            [
+                "",
+                "Controls:",
+                "TAB: toggle mode",
+                "F2: debug verbosity",
+                "LMB: select hex",
+                "ENTER/G: travel to selected",
+                "B: toggle biome view",
+                "RMB drag: pan",
+                "Wheel: zoom",
+                "F11: toggle fullscreen",
+                "T: world step",
+                "ESC: quit",
+            ]
+        )
 
         y = 18
         for line in lines:
