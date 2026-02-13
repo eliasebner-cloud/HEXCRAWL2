@@ -72,3 +72,10 @@
 
 3. **WG-6: Erosion/Polish**
    - Leichte Erosion und Coastline-Polish für spielbare Endform.
+
+## PR Process Standard
+
+- **1 PR = 1 Ziel**: Jede PR verfolgt genau ein klar abgegrenztes Ziel (keine Misch-PRs).
+- **Plan-Modus Regeln**: Plan-Modus ist **EIN** für WG-4/WG-5/WG-6 und **AUS** für Fixes/Docs-PRs.
+- **Repro-Info ist Pflicht**: Jede PR enthält reproduzierbare Angaben (Profile/Seeds/Schritte/Test-Commands) gemäß PR-Template.
+
