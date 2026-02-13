@@ -9,7 +9,11 @@ from hexcrawl.world.world_config import WorldConfig
 
 
 class HydrologyModel:
-    """Caches wrap-safe flow direction, accumulation, and lake data."""
+    """Caches wrap-safe flow direction, accumulation, and lake data.
+
+    Assumption: TARGET-sized worlds currently skip global hydrology prebuild when
+    caches are capped below world_size. Chunked hydrology is future work.
+    """
 
     def __init__(
         self,
@@ -24,6 +28,7 @@ class HydrologyModel:
         self._is_ocean_fn = is_ocean_fn
 
         self._cache_maxsize = self._resolve_cache_maxsize()
+        self._supports_global_build = (self.config.width * self.config.height) <= self._cache_maxsize
         self._flow_cache: OrderedDict[tuple[int, int], tuple[int, int] | None] = OrderedDict()
         self._accumulation_cache: OrderedDict[tuple[int, int], int] = OrderedDict()
         self._river_strength_cache: OrderedDict[tuple[int, int], int] = OrderedDict()
@@ -35,31 +40,34 @@ class HydrologyModel:
         if canonical is None:
             return None
         self._ensure_built()
-        return self._flow_cache[canonical]
+        return self._flow_cache.get(canonical)
 
     def accumulation(self, q: int, r: int) -> int:
         canonical = self.config.canonicalize(q, r)
         if canonical is None:
             return 0
         self._ensure_built()
-        return self._accumulation_cache[canonical]
+        return self._accumulation_cache.get(canonical, 0)
 
     def river_strength(self, q: int, r: int) -> int:
         canonical = self.config.canonicalize(q, r)
         if canonical is None:
             return 0
         self._ensure_built()
-        return self._river_strength_cache[canonical]
+        return self._river_strength_cache.get(canonical, 0)
 
     def is_lake(self, q: int, r: int) -> bool:
         canonical = self.config.canonicalize(q, r)
         if canonical is None:
             return False
         self._ensure_built()
-        return self._lake_cache[canonical]
+        return self._lake_cache.get(canonical, False)
 
     def _ensure_built(self) -> None:
         if self._built:
+            return
+        if not self._supports_global_build:
+            self._built = True
             return
         self._build_all()
         self._built = True

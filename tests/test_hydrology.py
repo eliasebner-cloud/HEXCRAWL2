@@ -47,6 +47,25 @@ class TestHydrology(unittest.TestCase):
         self.assertIsNone(model.flow_to(q, ocean_r))
         self.assertEqual(model.river_strength(q, ocean_r), 0)
 
+
+    def test_target_guard_skips_global_build_without_crash(self) -> None:
+        config = WorldConfig(profile=WorldProfile.TARGET, width=8, height=6)
+
+        model = HydrologyModel(
+            seed=11,
+            config=config,
+            height_fn=lambda q, r: float(q + r + 100),
+            is_ocean_fn=lambda q, r: False,
+        )
+        model._cache_maxsize = 10
+        model._supports_global_build = False
+
+        self.assertIsNone(model.flow_to(0, 0))
+        self.assertEqual(model.accumulation(0, 0), 0)
+        self.assertEqual(model.river_strength(0, 0), 0)
+        self.assertFalse(model.is_lake(0, 0))
+        self.assertTrue(model._built)
+
     def test_wrap_x_invariance(self) -> None:
         config = self._build_config()
 

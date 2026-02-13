@@ -285,7 +285,15 @@ class WorldMapView:
             if flow_to is None:
                 continue
 
-            nx, ny = axial_to_pixel(flow_to[0], flow_to[1], self.hex_size)
+            downstream_q, downstream_r = flow_to
+            if self.world_config.wrap_x:
+                width = self.world_config.width
+                downstream_q = min(
+                    (downstream_q - width, downstream_q, downstream_q + width),
+                    key=lambda candidate_q: abs(candidate_q - q),
+                )
+
+            nx, ny = axial_to_pixel(downstream_q, downstream_r, self.hex_size)
             nsx, nsy = self._world_to_screen(nx, ny)
             width = max(1, int(min(4, 1 + math.log2(max(1, strength)) / 2)))
             pygame.draw.line(screen, river_color, (sx, sy), (nsx, nsy), width=width)
