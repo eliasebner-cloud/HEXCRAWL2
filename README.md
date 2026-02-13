@@ -52,6 +52,7 @@ python tools/check.py
 - `ENTER` / `G` (World): Zur ausgewählten Hex reisen
 - `T` (World): World-Step (Tick) auslösen
 - `R` (World): River-Overlay umschalten
+- `[` / `]` (World): River-Threshold in 25er-Schritten senken/erhöhen
 
 Hinweis: River-Overlay ist aktuell primär für DEV gedacht; TARGET-Hydrology-Vollbuild wird künftig chunk-basiert ergänzt.
 

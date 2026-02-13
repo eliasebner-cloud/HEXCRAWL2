@@ -69,7 +69,8 @@ class WorldMapView:
         self.color_mode = ColorMode.TERRAIN
         self.debug_verbosity = "STD"
         self.show_rivers = False
-        self.river_threshold = 24
+        self.river_threshold = 250
+        self.river_threshold_step = 25
 
         self.terrain_colors: dict[TerrainType, tuple[int, int, int]] = {
             TerrainType.OCEAN: (45, 89, 134),
@@ -138,6 +139,12 @@ class WorldMapView:
 
         elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
             self.show_rivers = not self.show_rivers
+
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_LEFTBRACKET:
+            self.river_threshold = max(1, self.river_threshold - self.river_threshold_step)
+
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHTBRACKET:
+            self.river_threshold += self.river_threshold_step
 
         elif event.type == pygame.KEYDOWN and event.key == pygame.K_b:
             self.color_mode = (
@@ -286,6 +293,14 @@ class WorldMapView:
                 continue
 
             downstream_q, downstream_r = flow_to
+            downstream_strength = self.world_gen.get_river_strength(downstream_q, downstream_r)
+            downstream_tile = self.world_gen.get_tile(downstream_q, downstream_r)
+            if (
+                downstream_strength < self.river_threshold
+                and downstream_tile.terrain_type != TerrainType.OCEAN
+            ):
+                continue
+
             if self.world_config.wrap_x:
                 world_width = self.world_config.width
                 wraps = round((q - downstream_q) / world_width)
@@ -315,6 +330,7 @@ class WorldMapView:
             f"Seed: {self.world_gen.seed}",
             f"Climate seed: {self.climate_gen.seed}",
             f"Rivers: {'ON' if self.show_rivers else 'OFF'}",
+            f"River threshold: {self.river_threshold}",
             f"Player hex:   {self.player.hex_pos}",
             f"Selected hex: {self.selected_hex if self.selected_hex is not None else '(none)'}",
             f"Hover hex:    {self.hover_hex if self.hover_hex is not None else '(none)'}",
@@ -397,7 +413,6 @@ class WorldMapView:
                         if self.selected_hex is not None
                         else "Selected river/lake/flow: (none)"
                     ),
-                    f"River threshold: {self.river_threshold}",
                     f"World tile cache: {len(self.world_gen._tile_cache)}/{self.world_gen._tile_cache_maxsize}",
                     f"World height cache: {len(self.world_gen._height_cache)}/{self.world_gen._height_cache_maxsize}",
                     f"World raw-height cache: {len(self.world_gen._raw_height_cache)}/{self.world_gen._raw_height_cache_maxsize}",
@@ -427,6 +442,7 @@ class WorldMapView:
                 "ENTER/G: travel to selected",
                 "B: toggle biome view",
                 "R: toggle rivers",
+                "[/]: river threshold -/+",
                 "RMB drag: pan",
                 "Wheel: zoom",
                 "F11: toggle fullscreen",
