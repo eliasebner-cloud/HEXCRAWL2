@@ -15,7 +15,7 @@ Die Reihenfolge ist verbindlich:
 3. **Simulation (Fraktionen, NPC LOD, Living World)**
 4. **Gameplay (Skyrim/EQ2-ähnliche Exploration + Crafting/Farming-Loops)**
 
-> Hinweis für kommende PRs: WG-0..WG-3 done; nächster Fokus bleibt Worldgen-first mit WG-4..WG-6 (Climate v3 → Hydrology → Erosion/Polish).
+> Hinweis für kommende PRs: WG-0..WG-5 done; nächster Fokus ist WG-6 (Erosion/Polish).
 
 ## Große Roadmap (Phasen)
 

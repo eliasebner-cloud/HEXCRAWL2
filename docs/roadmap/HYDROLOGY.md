@@ -31,3 +31,16 @@ Ein robustes Fluss-/Seen-System auf Hexfeldern, das aus der Höhenkarte natürli
 - Große Flüsse entstehen aus großen Einzugsgebieten.
 - Seen treten in Senken plausibel auf.
 - Mehrheit der Flüsse endet im Meer oder in stabilen Binnenbecken.
+
+## Aktueller Stand (WG-5)
+
+- **Flow-Graph aktiv:** `flow_to` pro Hex ist deterministisch berechnet (inkl. Wrap-X-sicherer Nachbarschaft).
+- **Accumulation aktiv:** auf dem Flow-Graph aufbauend werden Einzugsgebiete/Akkumulationen berechnet und für River-Masks genutzt.
+- **Rivers/Lakes aktiv:** Flussnetz und Seen sind im HydrologyModel integriert.
+- **River-Overlay in World:** Toggle über `R`; Threshold-Tuning über `[` und `]` (DEV-default-fokussiert).
+
+## Bekannte Grenzen / Notes
+
+- **TARGET Global Build:** derzeit noch nicht vollständig chunk-basiert; Build-Guard verhindert ungewollte Vollberechnung im TARGET-Profil.
+- **Thresholds:** River-Sichtbarkeit hängt aktuell primär am DEV-Threshold; für TARGET ist weitere Kalibrierung im Zuge von WG-6/WG-6+ geplant.
+- **Wrap-Rendering:** Overlay-Rendering ist wrap-aware (inkl. Multi-Wrap), damit keine Naht-Artefakte am X-Seam entstehen.

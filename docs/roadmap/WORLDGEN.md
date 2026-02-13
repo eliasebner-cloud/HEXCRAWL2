@@ -83,7 +83,11 @@
 - Biome aus Heat/Moisture + Höhe ableitbar.
 
 ### WG-5 — Rivers / Lakes
+**Status:** ✅ DONE
+
 **Inhalt:** Basin-Logik, Flussrichtung, Flow Accumulation, Seen und Meerabfluss.
+
+**Hinweis:** HydrologyModel mit `flow_to`/`accumulation`/Rivers/Lakes ist aktiv; River-Overlay + Threshold-Tuning für DEV vorhanden, inkl. Wrap-aware Multi-Wrap-Overlay und TARGET-Build-Guard.
 
 **Definition of Done:**
 - Flüsse folgen Gefälle und konvergieren plausibel.
@@ -94,9 +98,11 @@
 **Inhalt:** leichte thermische/hydraulische Erosion für Spielbarkeit.
 
 **Definition of Done:**
-- Terrain wirkt weniger „synthetisch“.
-- Küsten/Flusstäler/Gebirge lesbarer.
-- Rechenkosten für Zielgröße praktikabel.
+- Sichtbar natürlicheres Terrain durch leichtes Carving/Polish.
+- Flusstäler werden lesbarer und stützen die Hydrology-Hauptläufe.
+- Küsten wirken ruhiger (weniger harte Noise-Kanten).
+- Deterministisch reproduzierbar pro Seed.
+- Performance bleibt für Dev/Target praktikabel.
 
 ## Nicht-Ziele (vorerst)
 
