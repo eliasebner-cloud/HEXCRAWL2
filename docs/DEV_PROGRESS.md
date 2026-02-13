@@ -52,6 +52,11 @@
 - Boundary-Falloff und lokales Smoothing ergänzt.
 - WG-3-Tests ergänzt; deterministische Height-Polish-Pipeline stabilisiert.
 
+### WG-5 – Hydrology (Flow/Accumulation/Rivers/Lakes)
+- `HydrologyModel` ergänzt (`flow_to`, `accumulation`, Rivers, Lakes); deterministisch und Wrap-X-safe.
+- River-Overlay in World verfügbar (`R` Toggle) inkl. Threshold-Tuning über `[` / `]` (DEV-Default aktiv).
+- Fixes: wrap-aware Overlay-Rendering (Multi-Wrap) sowie TARGET-sicherer Build-Guard.
+
 ## Aktueller Stand
 
 - Spiel läuft mit zwei Modi: **World** und **Local** (`TAB` zum Wechseln).
@@ -64,18 +69,17 @@
 
 ## Nächste 3 PRs (Worldgen-First)
 
-1. **WG-4: Climate v3**
-   - Wind/Ocean Proximity/Rainshadow auf den neuen Gebirgsgürteln integrieren.
+1. **WG-6: Erosion/Polish**
+   - River-Carving + Coastline-Smoothing + leichte thermische Erosion für natürlichere Formen.
 
-2. **WG-5: Hydrology**
-   - Flow Direction + Accumulation sowie Rivers/Lakes implementieren.
+2. **Lake overflow / sink filling (optional eigener PR)**
+   - Entweder separater Stabilitäts-PR oder als Teil von WG-6 integrieren.
 
-3. **WG-6: Erosion/Polish**
-   - Leichte Erosion und Coastline-Polish für spielbare Endform.
+3. **Climate scaling to target / Biome polish**
+   - Macro-Noise-Scaling + Fetch/Barrier-Skalierung auf Weltgröße (alternativ Biome-Polish).
 
 ## PR Process Standard
 
 - **1 PR = 1 Ziel**: Jede PR verfolgt genau ein klar abgegrenztes Ziel (keine Misch-PRs).
 - **Plan-Modus Regeln**: Plan-Modus ist **EIN** für WG-4/WG-5/WG-6 und **AUS** für Fixes/Docs-PRs.
 - **Repro-Info ist Pflicht**: Jede PR enthält reproduzierbare Angaben (Profile/Seeds/Schritte/Test-Commands) gemäß PR-Template.
-
