@@ -53,6 +53,8 @@ python tools/check.py
 - `T` (World): World-Step (Tick) auslösen
 - `R` (World): River-Overlay umschalten
 
+Hinweis: River-Overlay ist aktuell primär für DEV gedacht; TARGET-Hydrology-Vollbuild wird künftig chunk-basiert ergänzt.
+
 ## Contributing / PR workflow
 
 - Bitte für jede PR das GitHub-PR-Template verwenden (`.github/pull_request_template.md`).
