@@ -42,6 +42,8 @@ class ClimateGen:
         self.config = default_world_config() if config is None else config
         self._cache_maxsize = self._resolve_cache_maxsize()
         self._climate_cache: OrderedDict[tuple[int, int], tuple[TerrainType, float, ClimateTile]] = OrderedDict()
+        self._fetch_steps = 12
+        self._barrier_scan_steps = 6
 
     def get_tile(self, q: int, r: int, terrain_type: TerrainType, height: float) -> ClimateTile:
         """Return deterministic heat/moisture and biome for one hex."""
@@ -91,6 +93,22 @@ class ClimateGen:
         heat = (latitude_heat * 0.66) + (macro_noise * 0.22) + (local_noise * 0.12)
         return self._clamp01(heat - altitude_cooling)
 
+    def _wind_dir(self, r: int) -> int:
+        """Return zonal prevailing wind direction for latitude band.
+
+        +1 means W->E, -1 means E->W along wrap-x/q axis.
+        """
+        latitude = self._latitude_factor(r)
+        if latitude < 0.35:
+            return -1  # Tropics: trade winds (E->W)
+        if latitude < 0.75:
+            return 1  # Mid-latitudes: westerlies (W->E)
+        return -1  # Polar easterlies (E->W)
+
+    def wind_band_label(self, r: int) -> str:
+        """Public helper used by tests/debugging for coarse wind direction labels."""
+        return "W->E" if self._wind_dir(r) > 0 else "E->W"
+
     def _moisture_at(self, q: int, r: int, terrain_type: TerrainType, height: float) -> float:
         latitude = self._latitude_factor(r)
         equatorial_band = 1.0 - abs(0.45 - latitude) / 0.45
@@ -98,16 +116,19 @@ class ClimateGen:
         local_noise = self._noise01("moisture_local", q, r)
         moisture = (self._clamp01(equatorial_band) * 0.42) + (macro_noise * 0.35) + (local_noise * 0.23)
 
+        wind_dir = self._wind_dir(r)
+        moisture += self._ocean_fetch_bonus(q, r, wind_dir)
+
         if terrain_type == TerrainType.COAST:
             moisture += 0.16
 
         moisture += self._terrain_orographic_bonus(terrain_type)
 
-        # Prevailing wind from west to east: upwind uplift, leeward rainshadow.
-        west_barrier = self._orographic_barrier(q - 1, r)
-        east_barrier = self._orographic_barrier(q + 1, r)
-        moisture += west_barrier * 0.09
-        moisture -= east_barrier * 0.1
+        # Orographic uplift/rain-shadow by scanning limited upwind/downwind fetch.
+        upwind_barrier = self._scan_barrier_strength(q, r, -wind_dir)
+        downwind_barrier = self._scan_barrier_strength(q, r, wind_dir)
+        moisture += upwind_barrier * 0.11
+        moisture -= downwind_barrier * 0.13
 
         if height > 0.88:
             moisture -= 0.04
@@ -125,6 +146,38 @@ class ClimateGen:
     def _orographic_barrier(self, q: int, r: int) -> float:
         ridge_noise = self._noise01("ridge", q, r)
         return self._clamp01((ridge_noise - 0.58) / 0.42)
+
+    def _scan_barrier_strength(self, q: int, r: int, direction: int) -> float:
+        strongest = 0.0
+        for step in range(1, self._barrier_scan_steps + 1):
+            wrapped = self.config.canonicalize(q + (step * direction), r)
+            if wrapped is None:
+                break
+            sq, sr = wrapped
+            barrier = self._orographic_barrier(sq, sr)
+            decayed = barrier * (1.0 - (0.12 * (step - 1)))
+            strongest = max(strongest, decayed)
+        return self._clamp01(strongest)
+
+    def _ocean_fetch_bonus(self, q: int, r: int, wind_dir: int) -> float:
+        for step in range(1, self._fetch_steps + 1):
+            # Upwind sampling: opposite to travel direction.
+            wrapped = self.config.canonicalize(q - (step * wind_dir), r)
+            if wrapped is None:
+                break
+            sq, sr = wrapped
+            if self._is_ocean_source_tile(sq, sr):
+                proximity = 1.0 - ((step - 1) / self._fetch_steps)
+                return 0.24 * proximity
+        return 0.0
+
+    def _is_ocean_source_tile(self, q: int, r: int) -> bool:
+        latitude = self._latitude_factor(r)
+        basin_noise = self._noise01("ocean_fetch_basin", q // 3, r // 2)
+        detail_noise = self._noise01("ocean_fetch_detail", q, r)
+        threshold = 0.5 + (abs(0.5 - latitude) * 0.12)
+        ocean_score = (basin_noise * 0.7) + (detail_noise * 0.3)
+        return ocean_score >= threshold
 
     def _biome_for(
         self,
