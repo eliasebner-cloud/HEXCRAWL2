@@ -44,3 +44,14 @@ python main.py
 - `LMB` (World): Hex auswählen
 - `ENTER` / `G` (World): Zur ausgewählten Hex reisen
 - `T` (World): World-Step (Tick) auslösen
+
+## Contributing / PR workflow
+
+- Bitte für jede PR das GitHub-PR-Template verwenden (`.github/pull_request_template.md`).
+- PRs sollen den Repro-Info-Standard (Profile/Seeds/Steps/Test Commands) ausfüllen.
+- Vor dem Erstellen einer PR mindestens die Standard-Tests ausführen, z. B.:
+
+```bash
+python -m unittest -v
+```
+
