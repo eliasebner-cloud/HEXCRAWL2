@@ -287,11 +287,9 @@ class WorldMapView:
 
             downstream_q, downstream_r = flow_to
             if self.world_config.wrap_x:
-                width = self.world_config.width
-                downstream_q = min(
-                    (downstream_q - width, downstream_q, downstream_q + width),
-                    key=lambda candidate_q: abs(candidate_q - q),
-                )
+                world_width = self.world_config.width
+                wraps = round((q - downstream_q) / world_width)
+                downstream_q = downstream_q + wraps * world_width
 
             nx, ny = axial_to_pixel(downstream_q, downstream_r, self.hex_size)
             nsx, nsy = self._world_to_screen(nx, ny)
