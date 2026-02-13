@@ -18,6 +18,7 @@ TARGET_FPS = 60
 WORLD_SEED = 1337
 CLIMATE_SEED = WORLD_SEED + 1
 WORLD_PROFILE = WorldProfile.DEV
+DEBUG_VERBOSITY_CYCLE = ("MIN", "STD", "ADV")
 
 
 def _display_flags(fullscreen: bool) -> int:
@@ -57,8 +58,19 @@ def run() -> None:
         climate_gen,
         world_config,
     )
-    local_map = LocalMapView(WINDOW_SIZE[0], WINDOW_SIZE[1], time_model, player)
+    local_map = LocalMapView(
+        WINDOW_SIZE[0],
+        WINDOW_SIZE[1],
+        time_model,
+        player,
+        world_config,
+        WORLD_SEED,
+        CLIMATE_SEED,
+    )
     mode = "WORLD"
+    debug_verbosity = "STD"
+    world_map.set_debug_verbosity(debug_verbosity)
+    local_map.set_debug_verbosity(debug_verbosity)
 
     running = True
     while running:
@@ -77,6 +89,11 @@ def run() -> None:
                 except pygame.error:
                     is_fullscreen = False
                     screen = _set_display_mode(is_fullscreen)
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_F2:
+                level_index = DEBUG_VERBOSITY_CYCLE.index(debug_verbosity)
+                debug_verbosity = DEBUG_VERBOSITY_CYCLE[(level_index + 1) % len(DEBUG_VERBOSITY_CYCLE)]
+                world_map.set_debug_verbosity(debug_verbosity)
+                local_map.set_debug_verbosity(debug_verbosity)
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_t:
                 time_model.world_step()
             else:
