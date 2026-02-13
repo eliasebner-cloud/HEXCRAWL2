@@ -56,6 +56,8 @@ python tools/check.py
 
 Hinweis: River-Overlay ist aktuell primär für DEV gedacht; TARGET-Hydrology-Vollbuild wird künftig chunk-basiert ergänzt.
 
+Hydrology v2: Sinks können deterministisch überlaufen (Overflow) und verbessern so die Fluss-Kontinuität.
+
 ## Contributing / PR workflow
 
 - Bitte für jede PR das GitHub-PR-Template verwenden (`.github/pull_request_template.md`).
