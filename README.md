@@ -51,6 +51,7 @@ python tools/check.py
 - `LMB` (World): Hex auswählen
 - `ENTER` / `G` (World): Zur ausgewählten Hex reisen
 - `T` (World): World-Step (Tick) auslösen
+- `R` (World): River-Overlay umschalten
 
 ## Contributing / PR workflow
 

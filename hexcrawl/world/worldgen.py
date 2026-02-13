@@ -9,6 +9,7 @@ import math
 from collections import OrderedDict
 
 from hexcrawl.core.hex_math import AXIAL_DIRECTIONS
+from hexcrawl.world.hydrology import HydrologyModel
 from hexcrawl.world.tectonics import BoundaryData, BoundaryKind, PlateData, PlateType, TectonicsModel
 from hexcrawl.world.world_config import WorldConfig, default_world_config
 
@@ -53,6 +54,12 @@ class WorldGen:
         self._height_cache: OrderedDict[tuple[int, int], float] = OrderedDict()
         self._tile_cache: OrderedDict[tuple[int, int], WorldTile] = OrderedDict()
         self._tectonics = TectonicsModel(seed=self.seed, config=self.config)
+        self._hydrology = HydrologyModel(
+            seed=self.seed + 3,
+            config=self.config,
+            height_fn=self._height_at,
+            is_ocean_fn=lambda q, r: self._is_ocean_height(self._height_at(q, r)),
+        )
 
     def get_tile(self, q: int, r: int) -> WorldTile:
         """Return deterministic tile data for axial hex coordinates."""
@@ -310,3 +317,12 @@ class WorldGen:
             if self._is_ocean_height(neighbor_height):
                 return True
         return False
+
+    def get_river_strength(self, q: int, r: int) -> int:
+        return self._hydrology.river_strength(q, r)
+
+    def get_flow_to(self, q: int, r: int) -> tuple[int, int] | None:
+        return self._hydrology.flow_to(q, r)
+
+    def is_lake(self, q: int, r: int) -> bool:
+        return self._hydrology.is_lake(q, r)

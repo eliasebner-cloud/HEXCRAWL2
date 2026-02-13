@@ -63,6 +63,17 @@ class TestWorldGen(unittest.TestCase):
                     world_gen.get_tile(q + config.width, r),
                 )
 
+    def test_wrap_x_river_strength_consistency(self) -> None:
+        config = build_world_config(WorldProfile.DEV)
+        world_gen = WorldGen(seed=1337, config=config)
+
+        for q in range(-40, 41, 20):
+            for r in range(-30, 31, 15):
+                self.assertEqual(
+                    world_gen.get_river_strength(q, r),
+                    world_gen.get_river_strength(q + config.width, r),
+                )
+
     def test_worldgen_cache_uses_canonical_wrap_x_key(self) -> None:
         config = build_world_config(WorldProfile.DEV)
         world_gen = WorldGen(seed=1337, config=config)

@@ -68,6 +68,8 @@ class WorldMapView:
         self.world_config = world_config
         self.color_mode = ColorMode.TERRAIN
         self.debug_verbosity = "STD"
+        self.show_rivers = False
+        self.river_threshold = 24
 
         self.terrain_colors: dict[TerrainType, tuple[int, int, int]] = {
             TerrainType.OCEAN: (45, 89, 134),
@@ -133,6 +135,9 @@ class WorldMapView:
 
         elif event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_g):
             self.travel_to_selected()
+
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+            self.show_rivers = not self.show_rivers
 
         elif event.type == pygame.KEYDOWN and event.key == pygame.K_b:
             self.color_mode = (
@@ -229,6 +234,7 @@ class WorldMapView:
         r_max = math.ceil(max(rs)) + 2
 
         player_q, player_r = self.player.hex_pos
+        visible_hexes: list[tuple[int, int, float, float]] = []
 
         for q in range(q_min, q_max + 1):
             for r in range(r_min, r_max + 1):
@@ -242,15 +248,47 @@ class WorldMapView:
                 fill_color = self._tile_color(q, r)
                 pygame.draw.polygon(screen, fill_color, points, width=0)
                 pygame.draw.polygon(screen, self.grid_line_color, points, width=1)
+                visible_hexes.append((q, r, sx, sy))
 
-                if self.hover_hex is not None and (q, r) == self.hover_hex:
-                    pygame.draw.polygon(screen, self.hover_color, points, width=3)
+        self._draw_river_overlay(screen, visible_hexes)
 
-                if self.selected_hex is not None and (q, r) == self.selected_hex:
-                    pygame.draw.polygon(screen, self.selected_color, points, width=4)
+        for q, r, sx, sy in visible_hexes:
+            points = self._hex_corners(sx, sy)
+            if self.hover_hex is not None and (q, r) == self.hover_hex:
+                pygame.draw.polygon(screen, self.hover_color, points, width=3)
 
-                if (q, r) == (player_q, player_r):
-                    pygame.draw.polygon(screen, self.player_color, points, width=6)
+            if self.selected_hex is not None and (q, r) == self.selected_hex:
+                pygame.draw.polygon(screen, self.selected_color, points, width=4)
+
+            if (q, r) == (player_q, player_r):
+                pygame.draw.polygon(screen, self.player_color, points, width=6)
+
+    def _draw_river_overlay(
+        self,
+        screen: pygame.Surface,
+        visible_hexes: list[tuple[int, int, float, float]],
+    ) -> None:
+        if not self.show_rivers:
+            return
+
+        river_color = (52, 152, 219)
+        lake_color = (86, 178, 255)
+
+        for q, r, sx, sy in visible_hexes:
+            strength = self.world_gen.get_river_strength(q, r)
+            if strength < self.river_threshold:
+                if self.world_gen.is_lake(q, r):
+                    pygame.draw.circle(screen, lake_color, (int(sx), int(sy)), max(2, int(self.hex_size * 0.20)))
+                continue
+
+            flow_to = self.world_gen.get_flow_to(q, r)
+            if flow_to is None:
+                continue
+
+            nx, ny = axial_to_pixel(flow_to[0], flow_to[1], self.hex_size)
+            nsx, nsy = self._world_to_screen(nx, ny)
+            width = max(1, int(min(4, 1 + math.log2(max(1, strength)) / 2)))
+            pygame.draw.line(screen, river_color, (sx, sy), (nsx, nsy), width=width)
 
     def _draw_debug_panel(self, screen: pygame.Surface) -> None:
         panel_rect = pygame.Rect(self.world_width, 0, self.panel_width, self.world_height)
@@ -270,6 +308,7 @@ class WorldMapView:
             f"World size: {self.world_config.width}x{self.world_config.height}",
             f"Seed: {self.world_gen.seed}",
             f"Climate seed: {self.climate_gen.seed}",
+            f"Rivers: {'ON' if self.show_rivers else 'OFF'}",
             f"Player hex:   {self.player.hex_pos}",
             f"Selected hex: {self.selected_hex if self.selected_hex is not None else '(none)'}",
             f"Hover hex:    {self.hover_hex if self.hover_hex is not None else '(none)'}",
@@ -336,6 +375,23 @@ class WorldMapView:
         if self.debug_verbosity == "ADV":
             lines.extend(
                 [
+                    (
+                        "Hover river/lake/flow: "
+                        f"{self.world_gen.get_river_strength(*self.hover_hex)}/"
+                        f"{'lake' if self.world_gen.is_lake(*self.hover_hex) else '-'}/"
+                        f"{self.world_gen.get_flow_to(*self.hover_hex)}"
+                        if self.hover_hex is not None
+                        else "Hover river/lake/flow: (none)"
+                    ),
+                    (
+                        "Selected river/lake/flow: "
+                        f"{self.world_gen.get_river_strength(*self.selected_hex)}/"
+                        f"{'lake' if self.world_gen.is_lake(*self.selected_hex) else '-'}/"
+                        f"{self.world_gen.get_flow_to(*self.selected_hex)}"
+                        if self.selected_hex is not None
+                        else "Selected river/lake/flow: (none)"
+                    ),
+                    f"River threshold: {self.river_threshold}",
                     f"World tile cache: {len(self.world_gen._tile_cache)}/{self.world_gen._tile_cache_maxsize}",
                     f"World height cache: {len(self.world_gen._height_cache)}/{self.world_gen._height_cache_maxsize}",
                     f"World raw-height cache: {len(self.world_gen._raw_height_cache)}/{self.world_gen._raw_height_cache_maxsize}",
@@ -364,6 +420,7 @@ class WorldMapView:
                 "LMB: select hex",
                 "ENTER/G: travel to selected",
                 "B: toggle biome view",
+                "R: toggle rivers",
                 "RMB drag: pan",
                 "Wheel: zoom",
                 "F11: toggle fullscreen",
