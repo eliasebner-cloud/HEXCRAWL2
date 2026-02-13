@@ -71,26 +71,29 @@ class TestClimateGen(unittest.TestCase):
             def _noise01(self, channel: str, q: int, r: int) -> float:
                 return 0.5
 
-            def _orographic_barrier(self, q: int, r: int) -> float:
-                if q == 9:
-                    return 1.0
-                if q == 7:
-                    return 0.0
+            def _ocean_fetch_bonus(self, q: int, r: int, wind_dir: int) -> float:
                 return 0.0
 
-        climate_gen = StubClimateGen(seed=1, config=build_world_config(WorldProfile.DEV))
-
-        dry_leeward = climate_gen.get_tile(8, 0, TerrainType.PLAINS, 0.4).moisture
+            def _scan_barrier_strength(self, q: int, r: int, direction: int) -> float:
+                if direction > 0:
+                    return 1.0
+                return 0.0
 
         class WetStubClimateGen(StubClimateGen):
-            def _orographic_barrier(self, q: int, r: int) -> float:
-                if q == 7:
+            def _scan_barrier_strength(self, q: int, r: int, direction: int) -> float:
+                if direction < 0:
                     return 1.0
-                if q == 9:
-                    return 0.0
                 return 0.0
 
-        wetter_windward = WetStubClimateGen(seed=1, config=build_world_config(WorldProfile.DEV)).get_tile(8, 0, TerrainType.PLAINS, 0.4).moisture
+        config = build_world_config(WorldProfile.DEV)
+        mid_lat_r = int((config.r_min + config.r_max) / 2) + int(config.height * 0.22)
+
+        dry_leeward = StubClimateGen(seed=1, config=config).get_tile(
+            8, mid_lat_r, TerrainType.PLAINS, 0.4
+        ).moisture
+        wetter_windward = WetStubClimateGen(seed=1, config=config).get_tile(
+            8, mid_lat_r, TerrainType.PLAINS, 0.4
+        ).moisture
         self.assertLess(dry_leeward, wetter_windward)
 
     def test_orographic_and_coastal_moisture_bias(self) -> None:
@@ -124,6 +127,54 @@ class TestClimateGen(unittest.TestCase):
         first = climate_gen.get_tile(10, 4, TerrainType.PLAINS, 0.4)
         wrapped = climate_gen.get_tile(10 + config.width, 4, TerrainType.PLAINS, 0.4)
         self.assertEqual(first, wrapped)
+
+    def test_wind_bands_follow_expected_zonal_directions(self) -> None:
+        config = build_world_config(WorldProfile.DEV)
+        climate_gen = ClimateGen(seed=909, config=config)
+
+        equator_r = int((config.r_min + config.r_max) / 2)
+        tropical_r = equator_r
+        mid_lat_r = equator_r + int(config.height * 0.22)
+        polar_r = config.r_max
+
+        self.assertEqual(climate_gen.wind_band_label(tropical_r), "E->W")
+        self.assertEqual(climate_gen.wind_band_label(mid_lat_r), "W->E")
+        self.assertEqual(climate_gen.wind_band_label(polar_r), "E->W")
+
+    def test_ocean_fetch_wrap_and_downwind_moisture_bias(self) -> None:
+        config = build_world_config(WorldProfile.DEV)
+        climate_gen = ClimateGen(seed=909, config=config)
+
+        found_pair: tuple[int, int, int] | None = None
+        equator_r = int((config.r_min + config.r_max) / 2)
+        search_r_values = [equator_r + offset for offset in (0, 6, -6, 12, -12)]
+
+        for r in search_r_values:
+            if not config.is_r_in_bounds(r):
+                continue
+            wind_dir = climate_gen._wind_dir(r)
+            for q in range(config.q_min, config.q_min + 96):
+                if not climate_gen._is_ocean_source_tile(q, r):
+                    continue
+                near = config.canonicalize(q + wind_dir, r)
+                inland = config.canonicalize(q + (wind_dir * 8), r)
+                if near is None or inland is None:
+                    continue
+                found_pair = (near[0], inland[0], r)
+                break
+            if found_pair is not None:
+                break
+
+        self.assertIsNotNone(found_pair, "Expected to find at least one ocean-fetch sample pair")
+        assert found_pair is not None
+        near_q, inland_q, r = found_pair
+
+        near_tile = climate_gen.get_tile(near_q, r, TerrainType.PLAINS, 0.35)
+        wrapped_near_tile = climate_gen.get_tile(near_q + config.width, r, TerrainType.PLAINS, 0.35)
+        inland_tile = climate_gen.get_tile(inland_q, r, TerrainType.PLAINS, 0.35)
+
+        self.assertEqual(near_tile, wrapped_near_tile)
+        self.assertGreaterEqual(near_tile.moisture, inland_tile.moisture)
 
 
 if __name__ == "__main__":
